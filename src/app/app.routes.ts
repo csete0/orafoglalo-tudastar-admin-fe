@@ -38,5 +38,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/payments/payments.component').then((m) => m.PaymentsComponent),
   },
+  {
+    path: 'app-status',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/app-status/app-status.component').then((m) => m.AppStatusComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

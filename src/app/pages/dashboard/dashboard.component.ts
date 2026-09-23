@@ -17,6 +17,7 @@ export class DashboardComponent {
     { label: 'Felhasználó-kereső / 360°', note: 'A2 - kész', route: '/users' },
     { label: 'Támogatói műveletek', note: 'A3 - kész (a felhasználó-részletezőben)', route: '/users' },
     { label: 'Fizetés-lista', note: 'A4 - kész', route: '/payments' },
-    { label: 'Tanári aktivitás', note: 'A7', route: null },
+    { label: 'Tanári aktivitás', note: 'A7 - kész (a jelenlegi tanár-admin felületen)', route: null },
+    { label: 'Alkalmazás-állapot', note: 'A6 - kész', route: '/app-status' },
   ];
 }

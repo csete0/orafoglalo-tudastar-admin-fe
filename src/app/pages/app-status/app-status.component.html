@@ -1,0 +1,31 @@
+<div class="header-row">
+  <h1>Alkalmazás-állapot</h1>
+  <button type="button" (click)="refresh()" [disabled]="isLoading()">
+    {{ isLoading() ? 'Frissítés...' : 'Frissítés' }}
+  </button>
+</div>
+<p class="lead">A saját health-végpontjaikat pingeli - nem a docker állapotát.</p>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+<ul class="status-list">
+  @for (item of items(); track item.name) {
+    <li [class.down]="!item.isHealthy">
+      <span class="dot" [class.up]="item.isHealthy"></span>
+      <span class="name">{{ item.name }}</span>
+      <span class="detail">
+        @if (item.isHealthy) {
+          OK · {{ item.responseTimeMs }} ms
+        } @else if (item.statusCode) {
+          HTTP {{ item.statusCode }}
+        } @else {
+          {{ item.error ?? 'Nem elérhető' }}
+        }
+      </span>
+    </li>
+  } @empty {
+    <li class="empty">{{ isLoading() ? 'Betöltés...' : 'Nincs beállított cél.' }}</li>
+  }
+</ul>
