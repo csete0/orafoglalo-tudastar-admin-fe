@@ -1,0 +1,12 @@
+@if (authStore.isAuthenticated()) {
+  <header class="topbar">
+    <span class="brand">Patricks Admin</span>
+    <div class="who">
+      <span>{{ authStore.displayName() || authStore.email() }}</span>
+      <button type="button" (click)="logout()">Kijelentkezés</button>
+    </div>
+  </header>
+}
+<main>
+  <router-outlet />
+</main>

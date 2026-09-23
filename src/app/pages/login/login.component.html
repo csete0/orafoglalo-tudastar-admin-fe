@@ -1,0 +1,24 @@
+<div class="login-wrap">
+  <form class="login-card" (ngSubmit)="submit()">
+    <h1>Patricks Admin</h1>
+    <p class="hint">LAN/WireGuard-only belépés</p>
+
+    @if (errorMessage()) {
+      <div class="error">{{ errorMessage() }}</div>
+    }
+
+    <label>
+      Email
+      <input type="email" name="email" [(ngModel)]="email" required autocomplete="username" />
+    </label>
+
+    <label>
+      Jelszó
+      <input type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" />
+    </label>
+
+    <button type="submit" [disabled]="isSubmitting()">
+      {{ isSubmitting() ? 'Belépés...' : 'Belépés' }}
+    </button>
+  </form>
+</div>

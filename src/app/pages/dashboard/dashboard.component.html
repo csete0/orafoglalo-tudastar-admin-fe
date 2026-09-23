@@ -1,0 +1,11 @@
+<h1>Kezdőlap</h1>
+<p class="lead">A hozzáférési modell (F1) kész - a támogatói eszközök innen indulnak majd.</p>
+
+<ul class="upcoming">
+  @for (item of upcoming; track item.label) {
+    <li>
+      <span class="label">{{ item.label }}</span>
+      <span class="note">{{ item.note }}</span>
+    </li>
+  }
+</ul>
