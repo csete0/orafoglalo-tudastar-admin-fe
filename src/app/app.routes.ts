@@ -44,5 +44,46 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/app-status/app-status.component').then((m) => m.AppStatusComponent),
   },
+  // §3 migráció: a teacher-fe admin/*.ts oldalainak áthozatala (PATRICKS-ADMIN-
+  // SZETVALASZTAS-TERV.md). Nincs külön roleGuard - az egész admin-fe már
+  // admin-audience JWT-vel gated (authGuard + az Admin.API RequireAdminRole-ja).
+  {
+    path: 'jelentkezesek',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-jelentkezesek.component').then((m) => m.AdminJelentkezesekComponent),
+  },
+  {
+    path: 'tanarok',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-tanarok.component').then((m) => m.AdminTanarokComponent),
+  },
+  {
+    path: 'intezmenyek',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-intezmenyek.component').then((m) => m.AdminIntezmenyekComponent),
+  },
+  {
+    path: 'ellenorzes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-ellenorzes.component').then((m) => m.AdminEllenorzesComponent),
+  },
+  // B3: kuponkódok - a plan/teacher-fe mintája szerint nincs fejléc nav-link (dashboard-
+  // csempéről érhető el), az admin-fe nav-ja már így is zsúfolt (F1-A7 + ez az 5 új oldal).
+  {
+    path: 'kuponok',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-kuponok.component').then((m) => m.AdminKuponokComponent),
+  },
+  {
+    path: 'ai-koltes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-ai-koltes.component').then((m) => m.AdminAiKoltesComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

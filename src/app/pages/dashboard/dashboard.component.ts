@@ -17,7 +17,13 @@ export class DashboardComponent {
     { label: 'Felhasználó-kereső / 360°', note: 'A2 - kész', route: '/users' },
     { label: 'Támogatói műveletek', note: 'A3 - kész (a felhasználó-részletezőben)', route: '/users' },
     { label: 'Fizetés-lista', note: 'A4 - kész', route: '/payments' },
-    { label: 'Tanári aktivitás', note: 'A7 - kész (a jelenlegi tanár-admin felületen)', route: null },
+    { label: 'Tanári aktivitás', note: 'A7 - kész', route: '/tanarok' },
     { label: 'Alkalmazás-állapot', note: 'A6 - kész', route: '/app-status' },
+    // §3 migráció: a teacher-fe régi admin/*.ts oldalainak áthozatala.
+    { label: 'Tanári jelentkezések', note: 'migrálva', route: '/jelentkezesek' },
+    { label: 'Intézményi licencek', note: 'migrálva', route: '/intezmenyek' },
+    { label: 'Kérdés-jelentések / érdeklődések', note: 'migrálva', route: '/ellenorzes' },
+    { label: 'Kuponkódok (általános)', note: 'migrálva', route: '/kuponok' },
+    { label: 'AI-költés pult', note: 'migrálva', route: '/ai-koltes' },
   ];
 }
