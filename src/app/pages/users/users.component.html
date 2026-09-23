@@ -1,0 +1,61 @@
+<h1>Felhasználó-kereső</h1>
+
+<form class="filters" (ngSubmit)="search()">
+  <input type="text" placeholder="Email / név / iskola" name="query" [(ngModel)]="query" />
+
+  <select name="role" [(ngModel)]="role">
+    <option value="">Minden szerep</option>
+    <option value="student">Diák</option>
+    <option value="teacher">Tanár</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <select name="subscriptionStatus" [(ngModel)]="subscriptionStatus">
+    <option value="">Minden előfizetés-állapot</option>
+    <option value="Active">Aktív</option>
+    <option value="Expired">Lejárt</option>
+    <option value="Cancelled">Lemondva</option>
+    <option value="PaymentFailed">Sikertelen fizetés</option>
+  </select>
+
+  <button type="submit">Keresés</button>
+</form>
+
+<p class="count">{{ totalCount() }} találat</p>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Név</th>
+        <th>Szerepek</th>
+        <th>Regisztráció</th>
+        <th>Előfizetés</th>
+        <th>Fiók</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr>
+          <td><a [routerLink]="['/users', item.id]">{{ item.email }}</a></td>
+          <td>{{ item.displayName }}</td>
+          <td>{{ item.roles.join(', ') || '-' }}</td>
+          <td>{{ item.createdAt }}</td>
+          <td>{{ item.hasActiveSubscription ? 'Aktív' : '-' }}</td>
+          <td>{{ item.isLockedOut ? 'Zárolva' : 'OK' }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="empty">{{ isLoading() ? 'Betöltés...' : 'Nincs találat.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <button type="button" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">Előző</button>
+  <span>{{ page() }} / {{ totalPages }}</span>
+  <button type="button" [disabled]="page() >= totalPages" (click)="goToPage(page() + 1)">Következő</button>
+</div>

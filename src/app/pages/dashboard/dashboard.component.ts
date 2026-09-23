@@ -14,7 +14,7 @@ export class DashboardComponent {
   protected readonly items = [
     { label: 'Audit-napló', note: 'A5 - kész', route: '/audit-log' },
     { label: 'Ajándékkód-kezelés', note: 'A1 - kész', route: '/gift-coupons' },
-    { label: 'Felhasználó-kereső / 360°', note: 'A2', route: null },
+    { label: 'Felhasználó-kereső / 360°', note: 'A2 - kész', route: '/users' },
     { label: 'Támogatói műveletek', note: 'A3', route: null },
     { label: 'Fizetés-lista', note: 'A4', route: null },
     { label: 'Tanári aktivitás', note: 'A7', route: null },

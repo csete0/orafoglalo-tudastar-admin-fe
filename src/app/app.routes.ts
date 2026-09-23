@@ -22,5 +22,16 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/gift-coupons/gift-coupons.component').then((m) => m.GiftCouponsComponent),
   },
+  {
+    path: 'users',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/users/users.component').then((m) => m.UsersComponent),
+  },
+  {
+    path: 'users/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/user-detail/user-detail.component').then((m) => m.UserDetailComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

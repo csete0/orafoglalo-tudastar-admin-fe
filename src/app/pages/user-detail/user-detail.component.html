@@ -1,0 +1,127 @@
+<a routerLink="/users" class="back">← Vissza a kereséshez</a>
+
+@if (isLoading()) {
+  <p>Betöltés...</p>
+} @else if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+} @else if (user(); as u) {
+  <h1>{{ u.firstName }} {{ u.lastName }}</h1>
+  <p class="email">{{ u.email }}</p>
+
+  <div class="badges">
+    @for (role of u.roles; track role) {
+      <span class="badge">{{ role }}</span>
+    }
+    @if (u.isLockedOut) {
+      <span class="badge danger">Zárolva</span>
+    }
+    @if (!u.emailConfirmed) {
+      <span class="badge warn">E-mail nincs megerősítve</span>
+    }
+  </div>
+
+  <section>
+    <h2>Alapadatok</h2>
+    <dl>
+      <dt>Felhasználónév</dt><dd>{{ u.userName }}</dd>
+      <dt>Regisztráció</dt><dd>{{ u.createdAt }}</dd>
+      <dt>Próbaidőszak vége</dt><dd>{{ u.trialEndsAt ?? '-' }}</dd>
+    </dl>
+  </section>
+
+  @if (u.teacherProfile; as tp) {
+    <section>
+      <h2>Tanári profil</h2>
+      <dl>
+        <dt>Megjelenített név</dt><dd>{{ tp.displayName }}</dd>
+        <dt>Intézmény</dt><dd>{{ tp.institutionName ?? '-' }}</dd>
+        <dt>Állapot</dt><dd>{{ tp.isActive ? 'Aktív' : 'Letiltva' }}</dd>
+        <dt>Feladatsor-kvóta</dt>
+        <dd>{{ tp.actualTaskSetCount }} / {{ tp.maxTaskSets ?? 'korlátlan' }}</dd>
+        <dt>Tárhely-kvóta</dt>
+        <dd>{{ formatBytes(tp.actualStorageBytes) }} / {{ tp.maxStorageBytes ? formatBytes(tp.maxStorageBytes) : 'korlátlan' }}</dd>
+        <dt>Iskolái</dt><dd>{{ tp.schoolNames.join(', ') || '-' }}</dd>
+        <dt>Csoportjai</dt><dd>{{ tp.groupNames.join(', ') || '-' }}</dd>
+      </dl>
+    </section>
+  }
+
+  <section>
+    <h2>Előfizetések</h2>
+    @if (u.subscriptions.length) {
+      <table>
+        <thead>
+          <tr><th>Csomag</th><th>Állapot</th><th>Kezdet</th><th>Vég</th><th>AutoRenew</th><th>Ajándék</th></tr>
+        </thead>
+        <tbody>
+          @for (s of u.subscriptions; track s.id) {
+            <tr>
+              <td>{{ s.subscriptionTypeName }}</td>
+              <td>{{ s.status }}</td>
+              <td>{{ s.startDate }}</td>
+              <td>{{ s.endDate }}</td>
+              <td>{{ s.autoRenew ? 'Igen' : 'Nem' }}</td>
+              <td>{{ s.activatedViaGift ? 'Igen' : '-' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="empty">Nincs előfizetése.</p>
+    }
+  </section>
+
+  <section>
+    <h2>Fizetések</h2>
+    @if (u.payments.length) {
+      <table>
+        <thead>
+          <tr><th>Dátum</th><th>Összeg</th><th>Állapot</th><th>Mód</th><th>Stripe</th></tr>
+        </thead>
+        <tbody>
+          @for (p of u.payments; track p.id) {
+            <tr [class.flagged]="p.needsManualReview">
+              <td>{{ p.paymentDate }}</td>
+              <td>{{ p.amount }} Ft</td>
+              <td>{{ p.status }}{{ p.refunded ? ' (visszatérítve)' : '' }}</td>
+              <td>{{ p.paymentMethod ?? '-' }}</td>
+              <td>
+                @if (p.stripePaymentIntentUrl) {
+                  <a [href]="p.stripePaymentIntentUrl" target="_blank" rel="noopener">Megnyitás</a>
+                } @else { - }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="empty">Nincs fizetése.</p>
+    }
+  </section>
+
+  <section>
+    <h2>Csoporttagságok</h2>
+    @if (u.groupMemberships.length) {
+      <ul class="plain-list">
+        @for (g of u.groupMemberships; track g.groupId) {
+          <li>{{ g.groupName }} - csatlakozott: {{ g.joinedAt }}{{ g.removedAt ? (', kilépett: ' + g.removedAt) : '' }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="empty">Nincs csoporttagsága.</p>
+    }
+  </section>
+
+  <section>
+    <h2>Szülői e-mailek</h2>
+    @if (u.parentEmails.length) {
+      <ul class="plain-list">
+        @for (p of u.parentEmails; track p.email) {
+          <li>{{ p.email }} {{ p.isVerified ? '(megerősítve)' : '(nincs megerősítve)' }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="empty">Nincs regisztrált szülői e-mail.</p>
+    }
+  </section>
+}
