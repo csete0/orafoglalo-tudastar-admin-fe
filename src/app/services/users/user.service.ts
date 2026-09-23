@@ -109,4 +109,16 @@ export class UserService {
   async getDetail(id: number): Promise<UserDetail> {
     return firstValueFrom(this.http.get<UserDetail>(`${environment.apiUrl}/users/${id}`));
   }
+
+  async unlock(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${environment.apiUrl}/users/${id}/unlock`, {}));
+  }
+
+  async resendConfirmation(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${environment.apiUrl}/users/${id}/resend-confirmation`, {}));
+  }
+
+  async confirmEmailManually(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${environment.apiUrl}/users/${id}/confirm-email`, {}));
+  }
 }

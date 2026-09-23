@@ -20,6 +20,32 @@
     }
   </div>
 
+  <section class="actions">
+    <h2>Támogatói műveletek</h2>
+    <div class="action-buttons">
+      <button type="button" [disabled]="actionBusy() || !u.isLockedOut" (click)="unlock()">
+        Zárolás feloldása
+      </button>
+      <button
+        type="button"
+        [disabled]="actionBusy() || u.emailConfirmed"
+        (click)="resendConfirmation()"
+      >
+        Megerősítő e-mail újraküldése
+      </button>
+      <button
+        type="button"
+        [disabled]="actionBusy() || u.emailConfirmed"
+        (click)="confirmEmailManually()"
+      >
+        E-mail kézi megerősítése
+      </button>
+    </div>
+    @if (actionMessage()) {
+      <p class="action-message">{{ actionMessage() }}</p>
+    }
+  </section>
+
   <section>
     <h2>Alapadatok</h2>
     <dl>
