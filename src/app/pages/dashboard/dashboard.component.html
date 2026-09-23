@@ -2,9 +2,13 @@
 <p class="lead">A hozzáférési modell (F1) kész - a támogatói eszközök innen indulnak majd.</p>
 
 <ul class="upcoming">
-  @for (item of upcoming; track item.label) {
+  @for (item of items; track item.label) {
     <li>
-      <span class="label">{{ item.label }}</span>
+      @if (item.route) {
+        <a [routerLink]="item.route" class="label">{{ item.label }}</a>
+      } @else {
+        <span class="label disabled">{{ item.label }}</span>
+      }
       <span class="note">{{ item.note }}</span>
     </li>
   }

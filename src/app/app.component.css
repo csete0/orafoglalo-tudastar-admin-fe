@@ -12,6 +12,30 @@
   color: var(--admin-accent);
 }
 
+.nav {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  margin-left: 2rem;
+}
+
+.nav a {
+  color: var(--admin-text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+.nav a:hover {
+  color: var(--admin-text);
+}
+
+.nav a.active {
+  color: var(--admin-text);
+  border-bottom-color: var(--admin-accent);
+}
+
 .who {
   display: flex;
   align-items: center;

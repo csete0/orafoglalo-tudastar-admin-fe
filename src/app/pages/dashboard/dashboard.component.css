@@ -31,3 +31,16 @@ h1 {
   color: var(--admin-text-muted);
   font-size: 0.8125rem;
 }
+
+.label {
+  color: var(--admin-text);
+  text-decoration: none;
+}
+
+a.label:hover {
+  color: var(--admin-accent);
+}
+
+.label.disabled {
+  color: var(--admin-text-muted);
+}

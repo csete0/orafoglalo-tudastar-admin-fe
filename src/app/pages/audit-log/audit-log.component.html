@@ -1,0 +1,65 @@
+<h1>Audit-napló</h1>
+
+<form class="filters" (ngSubmit)="search()">
+  <input type="text" placeholder="Actor user ID" name="actorUserId" [(ngModel)]="actorUserId" />
+  <input type="text" placeholder="Action (részlet)" name="action" [(ngModel)]="action" />
+
+  <select name="targetType" [(ngModel)]="targetType">
+    <option value="">Minden TargetType</option>
+    @for (t of targetTypes(); track t) {
+      <option [value]="t">{{ t }}</option>
+    }
+  </select>
+
+  <select name="successFilter" [(ngModel)]="successFilter">
+    <option value="all">Minden eredmény</option>
+    <option value="true">Sikeres</option>
+    <option value="false">Sikertelen</option>
+  </select>
+
+  <input type="datetime-local" name="fromDate" [(ngModel)]="fromDate" />
+  <input type="datetime-local" name="toDate" [(ngModel)]="toDate" />
+
+  <button type="submit">Szűrés</button>
+</form>
+
+<p class="count">{{ totalCount() }} találat</p>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Időpont (UTC)</th>
+        <th>Actor</th>
+        <th>IP</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Eredmény</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr [class.failed]="!item.success">
+          <td>{{ item.atUtc }}</td>
+          <td>{{ item.actorUserId ?? '-' }}</td>
+          <td>{{ item.actorIp ?? '-' }}</td>
+          <td>{{ item.action }}</td>
+          <td>{{ item.targetType }}{{ item.targetId ? '#' + item.targetId : '' }}</td>
+          <td>{{ item.success ? 'OK' : 'HIBA' }}</td>
+          <td class="details">{{ item.details }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="empty">{{ isLoading() ? 'Betöltés...' : 'Nincs találat.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <button type="button" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">Előző</button>
+  <span>{{ page() }} / {{ totalPages }}</span>
+  <button type="button" [disabled]="page() >= totalPages" (click)="goToPage(page() + 1)">Következő</button>
+</div>

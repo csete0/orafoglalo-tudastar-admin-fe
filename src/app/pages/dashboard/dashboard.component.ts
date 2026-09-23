@@ -1,22 +1,22 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent {
-  // ADM-F1: ez a komponens csak a hozzáférési modellt bizonyítja
-  // (bejelentkezés -> védett útvonal). A tényleges funkciók (A5 audit-napló,
-  // A1 ajándékkód-kezelés, A2 felhasználó-kereső, ...) a terv sorrendje
-  // szerint ide kerülnek majd, egy-egy saját route/komponens formájában.
-  protected readonly upcoming = [
-    { label: 'Audit-napló', note: 'A5 - legközelebb' },
-    { label: 'Ajándékkód-kezelés', note: 'A1' },
-    { label: 'Felhasználó-kereső / 360°', note: 'A2' },
-    { label: 'Támogatói műveletek', note: 'A3' },
-    { label: 'Fizetés-lista', note: 'A4' },
-    { label: 'Tanári aktivitás', note: 'A7' },
+  // ADM-F1/A5: a terv sorrendje szerint épülnek ide a funkciók, egy-egy saját
+  // route/komponens formájában - a route mező null, amíg a funkció nem kész.
+  protected readonly items = [
+    { label: 'Audit-napló', note: 'A5 - kész', route: '/audit-log' },
+    { label: 'Ajándékkód-kezelés', note: 'A1', route: null },
+    { label: 'Felhasználó-kereső / 360°', note: 'A2', route: null },
+    { label: 'Támogatói műveletek', note: 'A3', route: null },
+    { label: 'Fizetés-lista', note: 'A4', route: null },
+    { label: 'Tanári aktivitás', note: 'A7', route: null },
   ];
 }
