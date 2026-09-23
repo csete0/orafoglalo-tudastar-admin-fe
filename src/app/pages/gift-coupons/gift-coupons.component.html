@@ -1,0 +1,83 @@
+<h1>Ajándékkód-kezelés</h1>
+<p class="lead">SZV (szülői ajándék-vásárlás) - "fizettem, de nem jött meg a kód" ügyekhez.</p>
+
+<form class="filters" (ngSubmit)="search()">
+  <input type="text" placeholder="Kód" name="code" [(ngModel)]="code" />
+  <input type="text" placeholder="Vevő vagy gyermek e-mail" name="email" [(ngModel)]="email" />
+
+  <select name="redeemedFilter" [(ngModel)]="redeemedFilter">
+    <option value="all">Beváltva: mindegy</option>
+    <option value="true">Beváltva</option>
+    <option value="false">Nincs beváltva</option>
+  </select>
+
+  <select name="activeFilter" [(ngModel)]="activeFilter">
+    <option value="all">Állapot: mindegy</option>
+    <option value="true">Aktív</option>
+    <option value="false">Érvénytelenítve</option>
+  </select>
+
+  <button type="submit">Szűrés</button>
+</form>
+
+<p class="count">{{ totalCount() }} találat</p>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Kód</th>
+        <th>Csomag</th>
+        <th>Vevő e-mail</th>
+        <th>Gyermek e-mail</th>
+        <th>Beváltva</th>
+        <th>Állapot</th>
+        <th>Létrehozva</th>
+        <th>Műveletek</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr [class.inactive]="!item.isActive">
+          <td class="code">{{ item.code }}</td>
+          <td>{{ item.subscriptionTypeName ?? '-' }}</td>
+          <td>{{ item.purchaserEmail ?? '(nincs adat - régi kupon)' }}</td>
+          <td>{{ item.childEmail ?? '-' }}</td>
+          <td>{{ item.isRedeemed ? ('Igen, ' + item.redeemedAt) : 'Nem' }}</td>
+          <td>{{ item.isActive ? 'Aktív' : 'Érvénytelenítve' }}</td>
+          <td>{{ item.createdAt }}</td>
+          <td class="actions">
+            <button
+              type="button"
+              [disabled]="busyId() === item.id || (!item.purchaserEmail && !item.childEmail)"
+              (click)="resend(item)"
+            >
+              Újraküldés
+            </button>
+            <button
+              type="button"
+              class="danger"
+              [disabled]="busyId() === item.id || !item.isActive"
+              (click)="deactivate(item)"
+            >
+              Érvénytelenítés
+            </button>
+            @if (rowMessages()[item.id]) {
+              <div class="row-message">{{ rowMessages()[item.id] }}</div>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="8" class="empty">{{ isLoading() ? 'Betöltés...' : 'Nincs találat.' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <button type="button" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">Előző</button>
+  <span>{{ page() }} / {{ totalPages }}</span>
+  <button type="button" [disabled]="page() >= totalPages" (click)="goToPage(page() + 1)">Következő</button>
+</div>

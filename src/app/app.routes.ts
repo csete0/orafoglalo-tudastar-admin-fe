@@ -16,5 +16,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/audit-log/audit-log.component').then((m) => m.AuditLogComponent),
   },
+  {
+    path: 'gift-coupons',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/gift-coupons/gift-coupons.component').then((m) => m.GiftCouponsComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

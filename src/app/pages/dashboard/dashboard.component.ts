@@ -13,7 +13,7 @@ export class DashboardComponent {
   // route/komponens formájában - a route mező null, amíg a funkció nem kész.
   protected readonly items = [
     { label: 'Audit-napló', note: 'A5 - kész', route: '/audit-log' },
-    { label: 'Ajándékkód-kezelés', note: 'A1', route: null },
+    { label: 'Ajándékkód-kezelés', note: 'A1 - kész', route: '/gift-coupons' },
     { label: 'Felhasználó-kereső / 360°', note: 'A2', route: null },
     { label: 'Támogatói műveletek', note: 'A3', route: null },
     { label: 'Fizetés-lista', note: 'A4', route: null },
