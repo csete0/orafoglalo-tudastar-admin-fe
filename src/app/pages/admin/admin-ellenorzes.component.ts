@@ -18,7 +18,7 @@ type Tab = 'reports' | 'inquiries' | 'payments';
   standalone: true,
   imports: [DatePipe, CurrencyPipe, FormsModule, LocalSpinnerComponent],
   template: `
-    <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="max-w-5xl">
       <h1 class="page-title">Ellenőrzés</h1>
       <div class="hairline"></div>
 

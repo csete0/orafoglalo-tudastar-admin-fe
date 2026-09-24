@@ -27,7 +27,7 @@ function extractErrorMessage(err: any, fallback: string): string {
   standalone: true,
   imports: [DatePipe, FormsModule, LocalSpinnerComponent],
   template: `
-    <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="max-w-5xl">
       <h1 class="page-title">Kuponok</h1>
       <p class="text-sm text-text-muted mt-1">
         Kedvezménykódok az előfizetés-vásárláshoz. A diák a fizetési oldalon váltja be;

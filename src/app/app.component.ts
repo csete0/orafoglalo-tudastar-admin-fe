@@ -1,11 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthStore } from './services/auth/auth.store';
+import { ConfirmDialogComponent } from './shared/confirm/confirm-dialog.component';
+import { ToastComponent } from './shared/toast/toast.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmDialogComponent, ToastComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })

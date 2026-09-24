@@ -16,7 +16,7 @@ const BYTES_PER_MB = 1048576;
   standalone: true,
   imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent],
   template: `
-    <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="max-w-5xl">
       <h1 class="page-title">Tanárok</h1>
       <p class="text-sm text-text-muted mt-1">Jóváhagyott tanári fiókok moderálása és kvótái</p>
       <div class="hairline"></div>

@@ -1,17 +1,59 @@
+@import "tailwindcss";
+
 :root {
   --admin-bg: #0f172a;
   --admin-surface: #1e293b;
   --admin-surface-2: #273449;
+  --admin-surface-3: #334155;
   --admin-border: #334155;
+  --admin-border-strong: #475569;
   --admin-text: #e2e8f0;
   --admin-text-muted: #94a3b8;
   --admin-accent: #f59e0b;
+  --admin-accent-hover: #d97706;
   --admin-danger: #ef4444;
   color-scheme: dark;
+
+  /* Az AI-költés pult kategorikus adat-sorai (forrásonként) - közvetlen var() hivatkozások. */
+  --series-chat: #3987e5;
+  --series-grading: #d95926;
+  --series-error: #199e70;
+  --series-studyplan: #c98500;
+  --series-quizgen: #d55181;
+  --series-maint: #00b300;
+  --series-dailychallenge: #7b7fe0;
 }
 
-* {
-  box-sizing: border-box;
+/* A tanári felületről áthozott oldalak (§3 migráció) a tanári app Tailwind-témájának
+   színneveit használják (text-text-muted, bg-bg-panel, btn-primary...). Itt ugyanezek a
+   nevek az admin saját sötét palettájára mutatnak, hogy a két színkészlet ne váljon el.
+   Tailwind v4-ben a szín-utility-k csak a @theme-ben definiált --color-* változókból
+   generálódnak. */
+@theme {
+  --color-bg-base: var(--admin-bg);
+  --color-bg-panel: var(--admin-surface);
+  --color-bg-element: var(--admin-surface-2);
+  --color-bg-elevated: var(--admin-surface-3);
+
+  --color-primary: var(--admin-accent);
+  --color-primary-hover: var(--admin-accent-hover);
+  --color-secondary: #a78bfa;
+
+  --color-success: #3fb950;
+  --color-danger: var(--admin-danger);
+  --color-warning: #d29922;
+
+  --color-primary-subtle: rgba(245, 158, 11, 0.15);
+  --color-secondary-subtle: rgba(167, 139, 250, 0.15);
+  --color-success-subtle: rgba(63, 185, 80, 0.15);
+  --color-danger-subtle: rgba(239, 68, 68, 0.15);
+  --color-warning-subtle: rgba(210, 153, 34, 0.15);
+
+  --color-text-primary: var(--admin-text);
+  --color-text-muted: var(--admin-text-muted);
+
+  --color-border-default: var(--admin-border);
+  --color-border-strong: var(--admin-border-strong);
 }
 
 html, body {
@@ -27,4 +69,101 @@ body {
 
 input, button {
   font-family: inherit;
+}
+
+@layer base {
+  /* Tailwind v4 preflight nem ad cursor: pointer-t a gomboknak. */
+  button, a, [role="button"] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  /* A natív admin-oldalak a böngésző-alapértékre építettek: a preflight ezeket nullázza
+     (normál súlyú címek, 16px-es gombfelirat). A komponens-CSS és a utility-k felülírják. */
+  h1, h2, h3 {
+    font-weight: 700;
+  }
+  button, input, select, textarea {
+    font-size: 0.875rem;
+  }
+}
+
+/* A tanári app komponens-osztályai, változatlan szerkezettel (az áthozott sablonok
+   ezekre épülnek). A variánsok nem @apply-olják az alaposztályt: class="btn btn-primary". */
+@layer components {
+  .card {
+    @apply bg-bg-panel border border-border-default rounded-2xl;
+  }
+
+  .card-link {
+    @apply bg-bg-panel border border-border-default rounded-2xl overflow-hidden transition-all duration-200;
+  }
+  .card-link:hover {
+    @apply border-border-strong bg-bg-elevated shadow-md;
+    transform: translateY(-2px);
+  }
+
+  .accent-bar {
+    @apply h-1 w-full;
+  }
+  .accent-0 .accent-bar { background: var(--color-primary); }
+  .accent-1 .accent-bar { background: var(--color-secondary); }
+  .accent-2 .accent-bar { background: var(--color-success); }
+  .accent-3 .accent-bar { background: var(--color-warning); }
+
+  .icon-tile {
+    @apply w-11 h-11 rounded-xl flex items-center justify-center shrink-0;
+  }
+  .icon-tile-primary { @apply bg-primary-subtle text-primary; }
+  .icon-tile-secondary { @apply bg-secondary-subtle text-secondary; }
+  .icon-tile-success { @apply bg-success-subtle text-success; }
+  .icon-tile-warning { @apply bg-warning-subtle text-warning; }
+  .icon-tile-danger { @apply bg-danger-subtle text-danger; }
+  .icon-tile-neutral { @apply bg-bg-element text-text-muted; }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border;
+  }
+  .badge-primary { @apply bg-primary-subtle text-primary border-primary/30; }
+  .badge-success { @apply bg-success-subtle text-success border-success/30; }
+  .badge-warning { @apply bg-warning-subtle text-warning border-warning/30; }
+  .badge-danger { @apply bg-danger-subtle text-danger border-danger/30; }
+  .badge-neutral { @apply bg-bg-element text-text-muted border-border-default; }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50;
+  }
+  /* Sötét szöveg: a borostyán akcenten a fehér rosszul olvasható (mint az admin saját gombjain). */
+  .btn-primary { @apply bg-primary hover:bg-primary-hover text-bg-base; }
+  .btn-danger { @apply border border-danger/40 text-danger hover:bg-danger-subtle; }
+  .btn-ghost { @apply text-text-muted hover:text-text-primary hover:bg-bg-element; }
+
+  .input {
+    @apply w-full rounded-lg border border-border-default bg-bg-element px-3 py-2 text-sm text-text-primary;
+  }
+  .input:focus {
+    @apply outline-none border-primary ring-2 ring-primary-subtle;
+  }
+
+  /* A natív admin-oldalcímekkel azonos méret és súly. */
+  .page-title {
+    @apply text-[1.375rem] font-bold m-0;
+  }
+  .hairline {
+    height: 1px;
+    background: linear-gradient(to right, var(--color-primary), var(--color-border-default), transparent);
+    @apply my-6;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-2xl bg-bg-element;
+  }
+
+  .tab-btn {
+    @apply pb-2 border-b-2 border-transparent text-sm text-text-muted transition-colors;
+  }
+  .tab-btn-active {
+    @apply border-primary text-text-primary font-semibold;
+  }
 }

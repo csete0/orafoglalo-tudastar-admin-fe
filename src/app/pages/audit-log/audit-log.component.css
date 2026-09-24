@@ -58,6 +58,8 @@ th, td {
 td.details {
   white-space: normal;
   max-width: 320px;
+  /* A JSON-részletekben hosszú, szóköz nélküli szakaszok vannak, amik különben kilógnak. */
+  overflow-wrap: anywhere;
   color: var(--admin-text-muted);
 }
 

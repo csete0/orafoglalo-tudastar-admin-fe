@@ -20,7 +20,7 @@ import {
   standalone: true,
   imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent],
   template: `
-    <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="max-w-5xl">
       <h1 class="page-title">Intézmények (admin)</h1>
       <p class="text-sm text-text-muted mt-1">
         Intézmények áttekintése, duplikátumok egyesítése és licenc-keretek kezelése
@@ -68,18 +68,18 @@ import {
           átkerül a célba, a forrás intézmény törlődik.
         </p>
         <div class="flex gap-3 items-end flex-wrap">
-          <div>
+          <div class="min-w-0 max-w-full">
             <label class="text-xs text-text-muted block mb-1">Forrás (törlődik)</label>
-            <select [(ngModel)]="sourceId" name="sourceId" class="input !w-auto min-w-48">
+            <select [(ngModel)]="sourceId" name="sourceId" class="input !w-auto min-w-48 max-w-full">
               <option [ngValue]="null">Válassz…</option>
               @for (school of store.schools(); track school.id) {
                 <option [ngValue]="school.id">{{ schoolLabel(school) }}</option>
               }
             </select>
           </div>
-          <div>
+          <div class="min-w-0 max-w-full">
             <label class="text-xs text-text-muted block mb-1">Cél (megmarad)</label>
-            <select [(ngModel)]="targetId" name="targetId" class="input !w-auto min-w-48">
+            <select [(ngModel)]="targetId" name="targetId" class="input !w-auto min-w-48 max-w-full">
               <option [ngValue]="null">Válassz…</option>
               @for (school of store.schools(); track school.id) {
                 <option [ngValue]="school.id">{{ schoolLabel(school) }}</option>

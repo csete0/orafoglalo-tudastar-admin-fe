@@ -12,7 +12,7 @@ import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.
   standalone: true,
   imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent],
   template: `
-    <div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="max-w-5xl">
       <h1 class="page-title">Tanári jelentkezések</h1>
       <p class="text-sm text-text-muted mt-1">Beérkezett tanári hozzáférés-kérelmek bírálata</p>
       <div class="hairline"></div>
