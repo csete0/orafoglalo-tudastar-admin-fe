@@ -1,0 +1,6 @@
+node_modules
+dist
+.angular
+.git
+start.sh
+service.log
