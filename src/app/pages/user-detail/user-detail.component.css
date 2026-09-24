@@ -31,7 +31,7 @@ h1 {
   margin-bottom: 1.25rem;
 }
 
-.badge {
+.role-chip {
   background: var(--admin-surface-2);
   border: 1px solid var(--admin-border);
   border-radius: 999px;
@@ -40,12 +40,12 @@ h1 {
   color: var(--admin-text-muted);
 }
 
-.badge.danger {
+.role-chip.danger {
   border-color: var(--admin-danger);
   color: var(--admin-danger);
 }
 
-.badge.warn {
+.role-chip.warn {
   border-color: var(--admin-accent);
   color: var(--admin-accent);
 }
@@ -115,6 +115,11 @@ dt {
 
 dd {
   margin: 0;
+}
+
+/* Keskeny képernyőn a táblázat saját tartójában görgessen, ne az egész oldal. */
+.table-scroll {
+  overflow-x: auto;
 }
 
 table {

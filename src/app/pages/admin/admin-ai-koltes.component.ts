@@ -60,7 +60,7 @@ const CHART_PAD_BOTTOM = 24;
   standalone: true,
   imports: [DatePipe, DecimalPipe, FormsModule, LocalSpinnerComponent],
   template: `
-    <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="max-w-6xl">
       <p class="text-xs font-bold text-text-muted uppercase tracking-wide mb-1">Platform-admin</p>
       <h1 class="page-title">AI-költés és automatizmusok</h1>
       <p class="text-sm text-text-muted mt-1 max-w-xl">

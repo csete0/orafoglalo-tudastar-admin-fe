@@ -17,7 +17,10 @@
     "@angular/forms": "^22.1.5",
     "@angular/platform-browser": "^22.1.5",
     "@angular/router": "^22.1.5",
+    "@tailwindcss/postcss": "^4.3.3",
+    "postcss": "^8.5.28",
     "rxjs": "^7.8.2",
+    "tailwindcss": "^4.3.3",
     "zone.js": "^0.16.1"
   },
   "devDependencies": {

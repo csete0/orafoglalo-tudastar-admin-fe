@@ -10,13 +10,13 @@
 
   <div class="badges">
     @for (role of u.roles; track role) {
-      <span class="badge">{{ role }}</span>
+      <span class="role-chip">{{ role }}</span>
     }
     @if (u.isLockedOut) {
-      <span class="badge danger">Zárolva</span>
+      <span class="role-chip danger">Zárolva</span>
     }
     @if (!u.emailConfirmed) {
-      <span class="badge warn">E-mail nincs megerősítve</span>
+      <span class="role-chip warn">E-mail nincs megerősítve</span>
     }
   </div>
 
@@ -75,6 +75,7 @@
   <section>
     <h2>Előfizetések</h2>
     @if (u.subscriptions.length) {
+      <div class="table-scroll">
       <table>
         <thead>
           <tr><th>Csomag</th><th>Állapot</th><th>Kezdet</th><th>Vég</th><th>AutoRenew</th><th>Ajándék</th></tr>
@@ -92,6 +93,7 @@
           }
         </tbody>
       </table>
+      </div>
     } @else {
       <p class="empty">Nincs előfizetése.</p>
     }
@@ -100,6 +102,7 @@
   <section>
     <h2>Fizetések</h2>
     @if (u.payments.length) {
+      <div class="table-scroll">
       <table>
         <thead>
           <tr><th>Dátum</th><th>Összeg</th><th>Állapot</th><th>Mód</th><th>Stripe</th></tr>
@@ -120,6 +123,7 @@
           }
         </tbody>
       </table>
+      </div>
     } @else {
       <p class="empty">Nincs fizetése.</p>
     }
