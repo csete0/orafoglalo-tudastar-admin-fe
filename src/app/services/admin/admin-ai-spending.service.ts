@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   AiRequestLogFilter,
   AiRequestLogPageDto,
+  AiSpendingClassTestTeacherDto,
   AiSpendingOverviewDto,
   AiSpendingTopSpenderDto,
   AutomationStatusDto,
@@ -40,6 +41,10 @@ export class AdminAiSpendingService {
     return this.http.get<AiSpendingTopSpenderDto[]>(`${this.base}/ai-spending/top-spenders`, {
       params: new HttpParams().set('days', days).set('limit', limit),
     });
+  }
+
+  getClassTestUsage(): Observable<AiSpendingClassTestTeacherDto[]> {
+    return this.http.get<AiSpendingClassTestTeacherDto[]>(`${this.base}/ai-spending/class-test-usage`);
   }
 
   getRequestLog(filter: AiRequestLogFilter, page: number, pageSize: number): Observable<AiRequestLogPageDto> {
