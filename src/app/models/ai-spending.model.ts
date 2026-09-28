@@ -3,6 +3,7 @@
 export const AI_SOURCES = [
   { key: 'chat', label: 'AI Mentor (diák chat)', color: 'var(--series-chat)' },
   { key: 'grading', label: 'Vizsga AI-értékelés', color: 'var(--series-grading)' },
+  { key: 'classtest', label: 'Dolgozat AI-pontozás (tanári)', color: 'var(--series-classtest)' },
   { key: 'error', label: 'Hiba keresése', color: 'var(--series-error)' },
   { key: 'studyplan', label: 'Tanulási terv (automata)', color: 'var(--series-studyplan)' },
   { key: 'quizgen', label: 'Kvíz-generálás (tanári)', color: 'var(--series-quizgen)' },
@@ -51,6 +52,16 @@ export interface AiSpendingTopSpenderDto {
   userName: string;
   requestCount: number;
   totalUsd: number;
+}
+
+/** Egy tanár e havi dolgozat AI-pontozásai a havi darabkerethez mérve (a költést a rendszer állja). */
+export interface AiSpendingClassTestTeacherDto {
+  teacherUserId: number;
+  teacherName: string;
+  email: string;
+  institutionName: string | null;
+  gradedThisMonth: number;
+  monthlyLimit: number;
 }
 
 export interface AiRequestLogDto {

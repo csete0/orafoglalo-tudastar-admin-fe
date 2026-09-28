@@ -5,6 +5,7 @@ import { AdminAiSpendingService } from '../../services/admin/admin-ai-spending.s
 import {
   AI_SOURCES,
   AiRequestLogDto,
+  AiSpendingClassTestTeacherDto,
   AiSpendingDayDto,
   AiSpendingOverviewDto,
   AiSpendingTopSpenderDto,
@@ -207,6 +208,41 @@ const CHART_PAD_BOTTOM = 24;
                     </tr>
                   } @empty {
                     <tr><td colspan="3" class="py-3 text-center text-text-muted text-xs">Nincs adat.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card p-4 mt-4" data-testid="class-test-usage">
+            <h2 class="font-bold mb-1">Dolgozat-pontozás tanáronként</h2>
+            <p class="text-xs text-text-muted mb-3">
+              ebben a hónapban beadott dolgozatok a tanári havi keretből - a költést a rendszer állja, a „Dolgozat AI-pontozás” sávban látszik
+            </p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs text-text-muted uppercase">
+                    <th class="text-left font-bold pb-2">Tanár</th>
+                    <th class="text-left font-bold pb-2">Iskola</th>
+                    <th class="text-right font-bold pb-2">Havi keret</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (t of classTestUsage(); track t.teacherUserId) {
+                    <tr class="border-t border-border-default">
+                      <td class="py-1.5">
+                        {{ t.teacherName }}
+                        <span class="block text-xs text-text-muted">{{ t.email }}</span>
+                      </td>
+                      <td class="py-1.5 text-text-muted">{{ t.institutionName || '–' }}</td>
+                      <td class="py-1.5 text-right tabular-nums font-semibold"
+                        [class.text-danger]="t.gradedThisMonth >= t.monthlyLimit">
+                        {{ t.gradedThisMonth }} / {{ t.monthlyLimit }}
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="3" class="py-3 text-center text-text-muted text-xs">Ebben a hónapban még nem volt beadott dolgozat.</td></tr>
                   }
                 </tbody>
               </table>
@@ -595,6 +631,7 @@ export class AdminAiKoltesComponent implements OnInit, OnDestroy {
   // ── Áttekintés ─────────────────────────────────────────────────────
   readonly overview = signal<AiSpendingOverviewDto | null>(null);
   readonly topSpenders = signal<AiSpendingTopSpenderDto[]>([]);
+  readonly classTestUsage = signal<AiSpendingClassTestTeacherDto[]>([]);
   // Külön a többi áttekintés-adattól: élő, közvetlen OpenRouter API-hívás,
   // a saját hibaállapota nem akadályozhatja a többi (DB-ből jövő) csempe
   // megjelenítését, ha az OpenRouter épp nem elérhető.
@@ -789,6 +826,7 @@ export class AdminAiKoltesComponent implements OnInit, OnDestroy {
       },
     });
     this.svc.getTopSpenders(30, 10).subscribe({ next: (data) => this.topSpenders.set(data), error: () => this.topSpenders.set([]) });
+    this.svc.getClassTestUsage().subscribe({ next: (data) => this.classTestUsage.set(data), error: () => this.classTestUsage.set([]) });
     this.svc.getCredits().subscribe({
       next: (data) => {
         this.credits.set(data);

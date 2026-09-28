@@ -48,6 +48,9 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     svcMock = {
       getOverview: vi.fn().mockReturnValue(of(makeOverview())),
       getTopSpenders: vi.fn().mockReturnValue(of([{ userId: 1, userName: 'Teszt Elek', requestCount: 5, totalUsd: 1.2 }])),
+      getClassTestUsage: vi.fn().mockReturnValue(of([
+        { teacherUserId: 7, teacherName: 'Tanár Tamás', email: 't@example.com', institutionName: 'Minta Gimnázium', gradedThisMonth: 42, monthlyLimit: 300 },
+      ])),
       getCredits: vi.fn().mockReturnValue(of({ totalCredits: 100, totalUsage: 23.5, remainingCredits: 76.5 })),
       getRequestLog: vi.fn().mockReturnValue(of({ items: [], totalCount: 0 })),
       getMaintenanceRuns: vi.fn().mockReturnValue(of({ items: [], totalCount: 0 })),
@@ -88,6 +91,18 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     expect(svcMock['getTopSpenders']).toHaveBeenCalledWith(30, 10);
     expect(component.overview()?.monthTotalUsd).toBe(15.7);
     expect(component.topSpenders().length).toBe(1);
+  });
+
+  it('a tanáronkénti dolgozat-felhasználást is megjeleníti a havi kerettel', () => {
+    configure();
+    const fixture = createFixture();
+    fixture.detectChanges();
+
+    const card: HTMLElement = fixture.nativeElement.querySelector('[data-testid="class-test-usage"]');
+    expect(svcMock['getClassTestUsage']).toHaveBeenCalled();
+    expect(card.textContent).toContain('Tanár Tamás');
+    expect(card.textContent).toContain('Minta Gimnázium');
+    expect(card.textContent).toContain('42 / 300');
   });
 
   it('induláskor betölti az OpenRouter kredit-egyenleget is', () => {
