@@ -13,6 +13,7 @@
       <a routerLink="/intezmenyek" routerLinkActive="active">Intézmények</a>
       <a routerLink="/ellenorzes" routerLinkActive="active">Ellenőrzés</a>
       <a routerLink="/ai-koltes" routerLinkActive="active">AI-költés</a>
+      <a href="#" (click)="openHangfire($event)">Háttérfeladatok</a>
     </nav>
     <div class="who">
       <span>{{ authStore.displayName() || authStore.email() }}</span>
