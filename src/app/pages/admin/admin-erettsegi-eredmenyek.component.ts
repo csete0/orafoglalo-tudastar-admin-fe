@@ -51,7 +51,7 @@ const GRADE_NAMES = ['elégtelen', 'elégséges', 'közepes', 'jó', 'jeles'];
         <div class="grid gap-4 md:grid-cols-2 mb-6">
           @for (l of s.levels; track l.level) {
             <div class="card p-5" [attr.data-testid]="'level-' + l.level">
-              <h2 class="font-bold">{{ l.level === 'emelt' ? 'Emelt' : 'Közép' }}szint
+              <h2 class="font-bold">{{ l.level === 'emelt' ? 'Emelt szint' : 'Középszint' }}
                 <span class="text-sm text-text-muted font-normal">· {{ l.count }} eredmény @if (l.averagePercent !== null) { · átlag {{ l.averagePercent | number: '1.0-1' }}% }</span></h2>
               <div class="mt-3 space-y-1">
                 @for (n of l.grades; track $index; let i = $index) {
@@ -101,7 +101,7 @@ const GRADE_NAMES = ['elégtelen', 'elégséges', 'közepes', 'jó', 'jeles'];
             @for (q of quotes(); track q.id) {
               <li class="border-t border-border-default pt-3">
                 <p class="text-sm">„{{ q.quote }}”</p>
-                <p class="text-xs text-text-muted mt-1">{{ q.level === 'emelt' ? 'Emelt' : 'Közép' }}szint, {{ q.year }} · {{ q.percent }}% · {{ q.updatedAt | date: 'yyyy.MM.dd.' }}</p>
+                <p class="text-xs text-text-muted mt-1">{{ q.level === 'emelt' ? 'Emelt szint' : 'Középszint' }}, {{ q.year }} · {{ q.percent }}% · {{ q.updatedAt | date: 'yyyy.MM.dd.' }}</p>
                 @if (q.status === 'pending') {
                   <div class="flex gap-3 mt-1.5">
                     <button type="button" class="text-xs font-bold text-primary" (click)="moderate(q, true)">Jóváhagyom</button>
