@@ -85,5 +85,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/admin/admin-ai-koltes.component').then((m) => m.AdminAiKoltesComponent),
   },
+  {
+    path: 'projektmuhely',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-projektmuhely.component').then((m) => m.AdminProjektmuhelyComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

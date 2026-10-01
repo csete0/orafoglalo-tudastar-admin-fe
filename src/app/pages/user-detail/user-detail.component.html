@@ -154,4 +154,37 @@
       <p class="empty">Nincs regisztrált szülői e-mail.</p>
     }
   </section>
+
+  <section>
+    <h2>Projektműhely</h2>
+    @if (userProjects(); as projects) {
+      @if (projects.length) {
+        <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Projekt</th><th>Nyelv</th><th>Lépés</th><th>Teljesítve</th><th>Ellenőrzés</th><th>Tipp · hely · kód</th><th>AI (30 nap)</th><th>Utoljára</th></tr>
+          </thead>
+          <tbody>
+            @for (p of projects; track p.slug + p.runtime) {
+              <tr>
+                <td>{{ p.title }}{{ p.completedAt ? ' ✓ kész' : '' }}</td>
+                <td>{{ runtimeLabels[p.runtime] ?? p.runtime }}</td>
+                <td>{{ p.currentMilestoneOrder }}.</td>
+                <td>{{ p.passedCount }} / {{ p.milestoneCount }}</td>
+                <td>{{ p.checks }}</td>
+                <td>{{ p.hint1 }} · {{ p.hint2 }} · {{ p.hint3 }}</td>
+                <td>{{ '$' + p.aiCostUsd30.toFixed(3) }}</td>
+                <td>{{ p.lastActivityAt ? p.lastActivityAt.slice(0, 16).replace('T', ' ') : '-' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+      } @else {
+        <p class="empty">Még nem kezdett projektet.</p>
+      }
+    } @else {
+      <p class="error">A Projektműhely-adatokat nem sikerült betölteni.</p>
+    }
+  </section>
 }

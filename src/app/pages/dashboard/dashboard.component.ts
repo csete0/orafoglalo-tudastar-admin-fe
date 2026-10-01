@@ -25,5 +25,6 @@ export class DashboardComponent {
     { label: 'Kérdés-jelentések / érdeklődések', note: 'migrálva', route: '/ellenorzes' },
     { label: 'Kuponkódok (általános)', note: 'migrálva', route: '/kuponok' },
     { label: 'AI-költés pult', note: 'migrálva', route: '/ai-koltes' },
+    { label: 'Projektműhely', note: 'haladás, tölcsér, AI- és Judge0-költés', route: '/projektmuhely' },
   ];
 }

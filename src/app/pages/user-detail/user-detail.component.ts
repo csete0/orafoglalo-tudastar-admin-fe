@@ -1,6 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { UserService, UserDetail } from '../../services/users/user.service';
+import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
+import { ProjectAdminUserProject, RUNTIME_LABELS } from '../../models/projektmuhely.model';
 
 @Component({
   selector: 'app-user-detail',
@@ -12,6 +15,7 @@ import { UserService, UserDetail } from '../../services/users/user.service';
 export class UserDetailComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly route = inject(ActivatedRoute);
+  private readonly projects = inject(AdminProjektmuhelyService);
   private userId!: number;
 
   readonly user = signal<UserDetail | null>(null);
@@ -19,9 +23,13 @@ export class UserDetailComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly actionBusy = signal(false);
   readonly actionMessage = signal<string | null>(null);
+  /** Projektműhely-haladás (külön végpont: a többi szakasztól függetlenül töltődik). null = nem sikerült. */
+  readonly userProjects = signal<ProjectAdminUserProject[] | null>([]);
+  readonly runtimeLabels = RUNTIME_LABELS;
 
   async ngOnInit(): Promise<void> {
     this.userId = Number(this.route.snapshot.paramMap.get('id'));
+    void firstValueFrom(this.projects.getUserProjects(this.userId)).then((p) => this.userProjects.set(p), () => this.userProjects.set(null));
     await this.reload();
     this.isLoading.set(false);
   }
