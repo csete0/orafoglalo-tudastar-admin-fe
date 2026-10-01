@@ -91,5 +91,17 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/admin/admin-projektmuhely.component').then((m) => m.AdminProjektmuhelyComponent),
   },
+  {
+    path: 'novekedes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-novekedes.component').then((m) => m.AdminNovekedesComponent),
+  },
+  {
+    path: 'erettsegi-eredmenyek',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-erettsegi-eredmenyek.component').then((m) => m.AdminErettsegiEredmenyekComponent),
+  },
   { path: '**', redirectTo: '' },
 ];
