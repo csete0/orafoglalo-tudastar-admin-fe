@@ -9,6 +9,9 @@ export const AI_SOURCES = [
   { key: 'quizgen', label: 'Kvíz-generálás (tanári)', color: 'var(--series-quizgen)' },
   { key: 'maint', label: 'Kvíz-karbantartás', color: 'var(--series-maint)' },
   { key: 'dailychallenge', label: 'Napi kihívás (automata)', color: 'var(--series-dailychallenge)' },
+  { key: 'project-hint', label: 'Projektműhely: AI-segítség', color: 'var(--series-project-hint)' },
+  { key: 'project-review', label: 'Projektműhely: kódvéleményezés', color: 'var(--series-project-review)' },
+  { key: 'project-error', label: 'Projektműhely: hibamagyarázat', color: 'var(--series-project-error)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];

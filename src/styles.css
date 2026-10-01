@@ -23,6 +23,9 @@
   --series-maint: #00b300;
   --series-dailychallenge: #7b7fe0;
   --series-classtest: #14a8b8;
+  --series-project-hint: #b06ae0;
+  --series-project-review: #c2703d;
+  --series-project-error: #6f93c4;
 }
 
 /* A tanári felületről áthozott oldalak (§3 migráció) a tanári app Tailwind-témájának
