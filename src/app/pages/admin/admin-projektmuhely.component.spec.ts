@@ -60,6 +60,7 @@ describe('AdminProjektmuhelyComponent', () => {
     expect(c.fmtMinutes(35)).toBe('35 perc');
     expect(c.fmtMinutes(130)).toBe('2.2 óra');
     expect(c.fmtMinutes(null)).toBe('–');
+    expect([c.fmtUsd(0.00012), c.fmtUsd(0.05), c.fmtUsd(0), c.fmtUsd(3.456)]).toEqual(['$0.0001', '$0.050', '$0.00', '$3.46']);
   });
 
   it('költség: időszakváltáskor újratölt', async () => {

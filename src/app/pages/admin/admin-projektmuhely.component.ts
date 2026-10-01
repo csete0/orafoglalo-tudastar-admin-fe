@@ -365,8 +365,9 @@ export class AdminProjektmuhelyComponent implements OnInit {
   label = sourceLabel;
   color = sourceColor;
 
+  /** Egy Projektműhely-kérés ~0,0001 USD - kis összegnél 4 tizedes, különben „$0.000” lenne. */
   fmtUsd(v: number): string {
-    return '$' + v.toFixed(v < 1 ? 3 : 2);
+    return '$' + v.toFixed(v === 0 || v >= 1 ? 2 : v < 0.01 ? 4 : 3);
   }
 
   fmtSeconds(s: number): string {

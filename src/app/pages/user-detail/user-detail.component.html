@@ -173,7 +173,7 @@
                 <td>{{ p.passedCount }} / {{ p.milestoneCount }}</td>
                 <td>{{ p.checks }}</td>
                 <td>{{ p.hint1 }} · {{ p.hint2 }} · {{ p.hint3 }}</td>
-                <td>{{ '$' + p.aiCostUsd30.toFixed(3) }}</td>
+                <td>{{ '$' + p.aiCostUsd30.toFixed(p.aiCostUsd30 < 0.01 ? 4 : 3) }}</td>
                 <td>{{ p.lastActivityAt ? p.lastActivityAt.slice(0, 16).replace('T', ' ') : '-' }}</td>
               </tr>
             }
