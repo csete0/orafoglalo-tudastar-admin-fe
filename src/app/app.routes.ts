@@ -92,6 +92,12 @@ export const routes: Routes = [
       import('./pages/admin/admin-projektmuhely.component').then((m) => m.AdminProjektmuhelyComponent),
   },
   {
+    path: 'szempontlistak',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-szempontlistak.component').then((m) => m.AdminSzempontlistakComponent),
+  },
+  {
     path: 'novekedes',
     canActivate: [authGuard],
     loadComponent: () =>
