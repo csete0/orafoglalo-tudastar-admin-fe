@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { GradeDisputeList } from '../../models/grade-dispute.model';
+import { GradeDisputeList, GradeItemCorrection } from '../../models/grade-dispute.model';
 
 /** Értékelési kifogások (PATRICKS-TELJES-VIZSGA-TERV.md, H4). */
 @Injectable({ providedIn: 'root' })
@@ -15,8 +15,9 @@ export class AdminGradeDisputeService {
     return this.http.get<GradeDisputeList>(this.baseUrl, { params });
   }
 
-  resolve(id: number, resolution: string | null): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/${id}/resolve`, { resolution });
+  /** Lezárás; a javított tételekkel (M2) az értékelés újraszámolódik, és tanulóeset lesz belőlük. */
+  resolve(id: number, resolution: string | null, corrections: GradeItemCorrection[] = []): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/${id}/resolve`, { resolution, corrections });
   }
 
   file(id: number, fileId: string): Observable<Blob> {

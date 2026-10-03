@@ -37,6 +37,15 @@ export interface GradeDispute {
   files: GradeDisputeFile[];
   resolvedAt: string | null;
   resolution: string | null;
+  /** A diák által hibásnak jelölt tételek (M2). */
+  disputedItemIds: number[];
+}
+
+/** Az admin javítása egy tételre (M2): szempontnál a helyes pont, állításnál a helyes igaz/hamis. */
+export interface GradeItemCorrection {
+  itemId: number;
+  points: number | null;
+  ok: boolean | null;
 }
 
 export interface GradeDisputeList {
