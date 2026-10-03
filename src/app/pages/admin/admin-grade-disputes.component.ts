@@ -2,13 +2,14 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminGradeDisputeService } from '../../services/admin/admin-grade-dispute.service';
-import { GradeDispute, GradeDisputeFile, GradeDisputeItem } from '../../models/grade-dispute.model';
+import { GradeDispute, GradeDisputeFile, GradeDisputeItem, GradeItemCorrection } from '../../models/grade-dispute.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { ToastService } from '../../shared/toast/toast.service';
 
 /**
  * „Szerintem hibás az értékelés” várólista (PATRICKS-TELJES-VIZSGA-TERV.md, H4): a diák indoka, a beadott fájlok (letölthetők),
- * az MI összegzése és a pontot vesztett szempontok az indokkal; lezáráskor a válasz értesítésként megy a diáknak.
+ * az MI összegzése és a pontot vesztett szempontok az indokkal; lezáráskor a válasz értesítésként megy a diáknak. M2: a diák által
+ * jelölt (vagy pontot vesztett) tételek tételenként javíthatók - a javítás újraszámolja az értékelést, és tanulóeset lesz belőle.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +78,32 @@ import { ToastService } from '../../shared/toast/toast.service';
               </ul>
             </details>
 
+            @if (!d.resolvedAt && correctable(d).length) {
+              <div class="text-xs mb-3 rounded-lg border border-border-default p-2" data-testid="grade-corrections">
+                <p class="font-semibold mb-1">
+                  Javítás tételenként ({{ d.disputedItemIds.length ? 'a diák által jelölt tételek' : 'a pontot vesztett tételek' }}) – csak ha a diáknak igaza van:
+                </p>
+                <ul class="space-y-1">
+                  @for (item of correctable(d); track item.itemId) {
+                    <li class="flex items-center gap-2">
+                      @if (item.kind === 'statement') {
+                        <label class="flex items-center gap-1 shrink-0">
+                          <input type="checkbox" [ngModel]="corrected(d, item).ok" (ngModelChange)="setCorrection(d, item, null, $event)" />
+                          igaz
+                        </label>
+                      } @else {
+                        <input type="number" min="0" [max]="item.maxPoints" class="input !w-16 !py-0.5 text-xs shrink-0"
+                          [attr.aria-label]="'Helyes pont: ' + item.text"
+                          [ngModel]="corrected(d, item).points" (ngModelChange)="setCorrection(d, item, $event, null)" />
+                        <span class="shrink-0">/ {{ item.maxPoints }}</span>
+                      }
+                      <span class="min-w-0">{{ item.text }} @if (item.reason) { <span class="text-text-muted">– {{ item.reason }}</span> }</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+
             @if (d.resolvedAt) {
               <span class="badge badge-success text-xs">Lezárva {{ d.resolvedAt | date: 'yyyy.MM.dd' }}</span>
               @if (d.resolution) { <p class="text-xs text-text-muted mt-1">Válasz: {{ d.resolution }}</p> }
@@ -115,6 +142,8 @@ export class AdminGradeDisputesComponent implements OnInit {
   readonly totalCount = signal(0);
   readonly totalPages = () => Math.max(1, Math.ceil(this.totalCount() / this.pageSize));
   readonly answers: Record<number, string> = {};
+  /** Kifogásonként a tételek javított értéke (csak a módosítottak mennek el). */
+  readonly corrections: Record<number, Record<number, GradeItemCorrection>> = {};
 
   readonly filterOptions = [
     { value: true, label: 'Csak nyitottak' },
@@ -143,6 +172,30 @@ export class AdminGradeDisputesComponent implements OnInit {
     return d.items.filter(i => i.kind === 'statement' ? i.ok === false : i.points < i.maxPoints);
   }
 
+  /** A javítható tételek: a diák által jelöltek, ha jelölt; különben a pontot vesztettek. */
+  correctable(d: GradeDispute): GradeDisputeItem[] {
+    return d.disputedItemIds.length ? d.items.filter(i => d.disputedItemIds.includes(i.itemId)) : this.lost(d);
+  }
+
+  corrected(d: GradeDispute, item: GradeDisputeItem): GradeItemCorrection {
+    return this.corrections[d.id]?.[item.itemId] ?? { itemId: item.itemId, points: item.points, ok: item.ok };
+  }
+
+  setCorrection(d: GradeDispute, item: GradeDisputeItem, points: number | null, ok: boolean | null): void {
+    const current = this.corrected(d, item);
+    (this.corrections[d.id] ??= {})[item.itemId] = item.kind === 'statement'
+      ? { ...current, points: null, ok: !!ok }
+      : { ...current, points: Math.max(0, Math.min(item.maxPoints, Number(points) || 0)), ok: null };
+  }
+
+  /** Csak a ténylegesen megváltozott tételek. */
+  changedCorrections(d: GradeDispute): GradeItemCorrection[] {
+    return Object.values(this.corrections[d.id] ?? {}).filter(c => {
+      const item = d.items.find(i => i.itemId === c.itemId)!;
+      return item.kind === 'statement' ? c.ok !== item.ok : c.points !== item.points;
+    });
+  }
+
   kb(bytes: number): number {
     return Math.max(1, Math.round(bytes / 1024));
   }
@@ -165,10 +218,13 @@ export class AdminGradeDisputesComponent implements OnInit {
 
   resolve(d: GradeDispute): void {
     this.pending.set(true);
-    this.svc.resolve(d.id, this.answers[d.id]?.trim() || null).subscribe({
+    const corrections = this.changedCorrections(d);
+    this.svc.resolve(d.id, this.answers[d.id]?.trim() || null, corrections).subscribe({
       next: () => {
         this.pending.set(false);
-        this.toast.success('Lezárva - a diák értesítést kapott.');
+        this.toast.success(corrections.length
+          ? `Lezárva - ${corrections.length} tétel javítva, a diák értesítést kapott.`
+          : 'Lezárva - a diák értesítést kapott.');
         this.load();
       },
       error: () => { this.pending.set(false); this.toast.danger('Hiba történt.'); },

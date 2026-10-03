@@ -14,7 +14,7 @@ const dispute = (overrides: Partial<GradeDispute> = {}): GradeDispute => ({
     { itemId: 2, order: 2, section: null, text: 'A cím középen', kind: 'statement', maxPoints: 0, points: 0, ok: true, reason: null, groupNo: 1 },
   ],
   files: [{ id: 'f1', name: 'danuvia.docx', sizeBytes: 83007 }],
-  resolvedAt: null, resolution: null,
+  resolvedAt: null, resolution: null, disputedItemIds: [],
   ...overrides,
 });
 
@@ -51,11 +51,27 @@ describe('AdminGradeDisputesComponent', () => {
     expect(row.textContent).not.toContain('A cím középen');
   });
 
+  it('tételenkénti javítás: csak a megváltozott tétel megy el', () => {
+    const fixture = render();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('[data-testid="grade-corrections"]')?.textContent).toContain('A margó 2 cm');
+    const d = dispute();
+    fixture.componentInstance.setCorrection(d, d.items[0], 2, null);
+    fixture.componentInstance.resolve(d);
+    expect(svc.resolve).toHaveBeenCalledWith(3, null, [{ itemId: 1, points: 2, ok: null }]);
+  });
+
+  it('ha a diák tételeket jelölt, azok javíthatók', () => {
+    const d = dispute({ disputedItemIds: [2] });
+    const fixture = render();
+    expect(fixture.componentInstance.correctable(d).map(i => i.itemId)).toEqual([2]);
+  });
+
   it('lezáráskor a választ elküldi és újratölt', () => {
     const fixture = render();
     fixture.componentInstance.answers[3] = '  Igazad van.  ';
     fixture.componentInstance.resolve(dispute());
-    expect(svc.resolve).toHaveBeenCalledWith(3, 'Igazad van.');
+    expect(svc.resolve).toHaveBeenCalledWith(3, 'Igazad van.', []);
     expect(svc.list).toHaveBeenCalledTimes(2);
   });
 });
