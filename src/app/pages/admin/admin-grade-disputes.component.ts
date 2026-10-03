@@ -59,7 +59,7 @@ import { ToastService } from '../../shared/toast/toast.service';
             <div class="flex flex-wrap gap-2 mb-2">
               @for (f of d.files; track f.id) {
                 <button (click)="download(d, f)" class="btn btn-ghost !px-2 !py-1 !text-xs">
-                  ⬇ {{ f.name }} ({{ kb(f.sizeBytes) }} KB)
+                  Letöltés: {{ f.name }} ({{ kb(f.sizeBytes) }} KB)
                 </button>
               }
             </div>
