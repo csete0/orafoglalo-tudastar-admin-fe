@@ -6,6 +6,7 @@ import {
   AiRequestLogFilter,
   AiRequestLogPageDto,
   AiSpendingClassTestTeacherDto,
+  AiSpendingFullExamUsageDto,
   AiSpendingOverviewDto,
   AiSpendingTopSpenderDto,
   AutomationStatusDto,
@@ -41,6 +42,10 @@ export class AdminAiSpendingService {
     return this.http.get<AiSpendingTopSpenderDto[]>(`${this.base}/ai-spending/top-spenders`, {
       params: new HttpParams().set('days', days).set('limit', limit),
     });
+  }
+
+  getFullExamUsage(): Observable<AiSpendingFullExamUsageDto> {
+    return this.http.get<AiSpendingFullExamUsageDto>(`${this.base}/ai-spending/full-exam-usage`);
   }
 
   getClassTestUsage(): Observable<AiSpendingClassTestTeacherDto[]> {

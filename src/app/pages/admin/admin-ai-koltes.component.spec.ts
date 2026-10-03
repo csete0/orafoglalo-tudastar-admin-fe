@@ -51,6 +51,10 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
       getClassTestUsage: vi.fn().mockReturnValue(of([
         { teacherUserId: 7, teacherName: 'Tanár Tamás', email: 't@example.com', institutionName: 'Minta Gimnázium', gradedThisMonth: 42, monthlyLimit: 300 },
       ])),
+      getFullExamUsage: vi.fn().mockReturnValue(of({
+        gradedExamsThisMonth: 12, studentsThisMonth: 9, examCostTodayUsd: 1.6, practiceCostTodayUsd: 0.5, last30DaysCostUsd: 14.2,
+        dailyAlertUsd: 2, dailyAlert: true, storageBytes: 52428800, storageFiles: 140, storageLast30DaysBytes: 10485760,
+      })),
       getCredits: vi.fn().mockReturnValue(of({ totalCredits: 100, totalUsage: 23.5, remainingCredits: 76.5 })),
       getRequestLog: vi.fn().mockReturnValue(of({ items: [], totalCount: 0 })),
       getMaintenanceRuns: vi.fn().mockReturnValue(of({ items: [], totalCount: 0 })),
@@ -103,6 +107,18 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     expect(card.textContent).toContain('Tanár Tamás');
     expect(card.textContent).toContain('Minta Gimnázium');
     expect(card.textContent).toContain('42 / 300');
+  });
+
+  // Teljes vizsga (I): e havi értékelések, költés a napi riasztással, a feltöltések tárhelye.
+  it('a teljes vizsga értékelésének kártyáját a riasztással és a tárhellyel mutatja', () => {
+    configure();
+    const fixture = createFixture();
+    fixture.detectChanges();
+    const card: HTMLElement = fixture.nativeElement.querySelector('[data-testid="full-exam-usage"]');
+    expect(card.textContent).toContain('12 vizsga · 9 diák');
+    expect(card.querySelector('[role="alert"]')?.textContent).toContain('riasztási küszöböt ($2.00)');
+    expect(card.textContent).toContain('50.0 MB · 140 fájl');
+    expect(card.textContent).toContain('+10.0 MB');
   });
 
   it('induláskor betölti az OpenRouter kredit-egyenleget is', () => {

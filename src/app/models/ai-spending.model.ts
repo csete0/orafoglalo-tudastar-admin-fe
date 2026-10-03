@@ -12,6 +12,8 @@ export const AI_SOURCES = [
   { key: 'project-hint', label: 'Projektműhely: AI-segítség', color: 'var(--series-project-hint)' },
   { key: 'project-review', label: 'Projektműhely: kódvéleményezés', color: 'var(--series-project-review)' },
   { key: 'project-error', label: 'Projektműhely: hibamagyarázat', color: 'var(--series-project-error)' },
+  { key: 'office-grading', label: 'Irodai feladat értékelése (gyakorlás)', color: 'var(--series-office-grading)' },
+  { key: 'exam-full', label: 'Teljes vizsga értékelése', color: 'var(--series-exam-full)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
@@ -58,6 +60,20 @@ export interface AiSpendingTopSpenderDto {
 }
 
 /** Egy tanár e havi dolgozat AI-pontozásai a havi darabkerethez mérve (a költést a rendszer állja). */
+/** Teljes vizsga (I): e havi értékelések, irodai MI-költés a napi riasztással, a feltöltések tárhelye (BE: AiSpendingFullExamUsageDto). */
+export interface AiSpendingFullExamUsageDto {
+  gradedExamsThisMonth: number;
+  studentsThisMonth: number;
+  examCostTodayUsd: number;
+  practiceCostTodayUsd: number;
+  last30DaysCostUsd: number;
+  dailyAlertUsd: number;
+  dailyAlert: boolean;
+  storageBytes: number;
+  storageFiles: number;
+  storageLast30DaysBytes: number;
+}
+
 export interface AiSpendingClassTestTeacherDto {
   teacherUserId: number;
   teacherName: string;

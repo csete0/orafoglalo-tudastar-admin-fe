@@ -6,6 +6,7 @@ import {
   AI_SOURCES,
   AiRequestLogDto,
   AiSpendingClassTestTeacherDto,
+  AiSpendingFullExamUsageDto,
   AiSpendingDayDto,
   AiSpendingOverviewDto,
   AiSpendingTopSpenderDto,
@@ -213,6 +214,37 @@ const CHART_PAD_BOTTOM = 24;
               </table>
             </div>
           </div>
+
+          @if (fullExam(); as fe) {
+            <div class="card p-4 mt-4" data-testid="full-exam-usage">
+              <h2 class="font-bold mb-1">Teljes vizsga értékelése</h2>
+              <p class="text-xs text-text-muted mb-3">
+                irodai/weblap feladatok MI-pontozása - a rendszer állja, a diák havi darabkerete (ingyenes 1 / standard 4 / prémium 10) számít
+              </p>
+              @if (fe.dailyAlert) {
+                <p class="text-sm text-danger font-semibold mb-2" role="alert">
+                  A mai irodai MI-pontozás elérte a riasztási küszöböt ({{ fmtUsd(fe.dailyAlertUsd) }}).
+                </p>
+              }
+              <div class="grid gap-3 sm:grid-cols-3 text-sm">
+                <div>
+                  <div class="text-xs text-text-muted uppercase">E hónapban</div>
+                  <div class="font-semibold tabular-nums">{{ fe.gradedExamsThisMonth }} vizsga · {{ fe.studentsThisMonth }} diák</div>
+                </div>
+                <div>
+                  <div class="text-xs text-text-muted uppercase">Költés ma / 30 nap</div>
+                  <div class="font-semibold tabular-nums">
+                    {{ fmtUsd(fe.examCostTodayUsd) }} vizsga + {{ fmtUsd(fe.practiceCostTodayUsd) }} gyakorlás / {{ fmtUsd(fe.last30DaysCostUsd) }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-text-muted uppercase">Feltöltések tárhelye</div>
+                  <div class="font-semibold tabular-nums">{{ mb(fe.storageBytes) }} MB · {{ fe.storageFiles }} fájl</div>
+                  <div class="text-xs text-text-muted">+{{ mb(fe.storageLast30DaysBytes) }} MB az elmúlt 30 napban</div>
+                </div>
+              </div>
+            </div>
+          }
 
           <div class="card p-4 mt-4" data-testid="class-test-usage">
             <h2 class="font-bold mb-1">Dolgozat-pontozás tanáronként</h2>
@@ -632,6 +664,7 @@ export class AdminAiKoltesComponent implements OnInit, OnDestroy {
   readonly overview = signal<AiSpendingOverviewDto | null>(null);
   readonly topSpenders = signal<AiSpendingTopSpenderDto[]>([]);
   readonly classTestUsage = signal<AiSpendingClassTestTeacherDto[]>([]);
+  readonly fullExam = signal<AiSpendingFullExamUsageDto | null>(null);
   // Külön a többi áttekintés-adattól: élő, közvetlen OpenRouter API-hívás,
   // a saját hibaállapota nem akadályozhatja a többi (DB-ből jövő) csempe
   // megjelenítését, ha az OpenRouter épp nem elérhető.
@@ -802,6 +835,11 @@ export class AdminAiKoltesComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Bájt → MB, egy tizedessel. */
+  mb(bytes: number): string {
+    return (bytes / 1024 / 1024).toFixed(1);
+  }
+
   fmtUsd(v: number): string {
     return '$' + v.toFixed(v < 1 ? 3 : 2);
   }
@@ -827,6 +865,7 @@ export class AdminAiKoltesComponent implements OnInit, OnDestroy {
     });
     this.svc.getTopSpenders(30, 10).subscribe({ next: (data) => this.topSpenders.set(data), error: () => this.topSpenders.set([]) });
     this.svc.getClassTestUsage().subscribe({ next: (data) => this.classTestUsage.set(data), error: () => this.classTestUsage.set([]) });
+    this.svc.getFullExamUsage().subscribe({ next: (data) => this.fullExam.set(data), error: () => this.fullExam.set(null) });
     this.svc.getCredits().subscribe({
       next: (data) => {
         this.credits.set(data);
