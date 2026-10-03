@@ -9,14 +9,15 @@ import { InstitutionalInquiryDto } from '../../models/institutional-inquiry.mode
 import { CurrencyPipe } from '@angular/common';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { ToastService } from '../../shared/toast/toast.service';
+import { AdminGradeDisputesComponent } from './admin-grade-disputes.component';
 
-type Tab = 'reports' | 'inquiries' | 'payments';
+type Tab = 'reports' | 'inquiries' | 'payments' | 'grades';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-ellenorzes',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, FormsModule, LocalSpinnerComponent],
+  imports: [DatePipe, CurrencyPipe, FormsModule, LocalSpinnerComponent, AdminGradeDisputesComponent],
   template: `
     <div class="max-w-5xl">
       <h1 class="page-title">Ellenőrzés</h1>
@@ -48,7 +49,20 @@ type Tab = 'reports' | 'inquiries' | 'payments';
           [class.text-text-muted]="activeTab() !== 'payments'">
           Fizetések
         </button>
+        <button (click)="setTab('grades')"
+          class="px-4 py-2 font-semibold transition-colors -mb-px border-b-2"
+          [class.border-primary]="activeTab() === 'grades'"
+          [class.text-primary]="activeTab() === 'grades'"
+          [class.border-transparent]="activeTab() !== 'grades'"
+          [class.text-text-muted]="activeTab() !== 'grades'">
+          Értékelési kifogások
+        </button>
       </div>
+
+      <!-- Értékelési kifogások (teljes vizsga, H4) -->
+      @if (activeTab() === 'grades') {
+        <app-admin-grade-disputes />
+      }
 
       <!-- Kérdés-jelentések fül -->
       @if (activeTab() === 'reports') {
