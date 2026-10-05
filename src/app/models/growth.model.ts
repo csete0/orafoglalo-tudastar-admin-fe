@@ -13,7 +13,7 @@ export interface GrowthOverview {
 export interface GrowthCohort {
   weekStart: string;
   registered: number;
-  activated: number;
+  activated: number | null;
   paid: number;
   /** null: az a hét még nem telt el. */
   retainedWeek1: number | null;
