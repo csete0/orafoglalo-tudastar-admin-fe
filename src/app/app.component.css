@@ -17,6 +17,8 @@
   flex-wrap: wrap;
   gap: 1rem;
   flex: 1;
+  /* min-width: 0 nélkül a flex-elem nem mehet a tartalma alá, így a sok menüpont nem tördel, hanem kilóg. */
+  min-width: 0;
   margin-left: 2rem;
 }
 

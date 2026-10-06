@@ -142,7 +142,7 @@ const DAY_LABELS = ['1. nap', '2. nap', '3. nap', '4. nap', '5. nap', '6. nap', 
             </div>
             <p class="text-sm mt-2 tabular-nums">
               <strong>{{ s.costTotalUsd | number: '1.2-2' }} $</strong> / {{ s.totalBudgetUsd | number: '1.0-2' }} $ ({{ s.budgetUsedPercent }}%) · ma {{ s.costTodayUsd | number: '1.2-2' }} $ ·
-              vetítve {{ s.projectedTotalUsd | number: '1.0-0' }} $
+              vetítve {{ s.projectedTotalUsd | number: '1.0-2' }} $
             </p>
             @if (s.queuedForAi.count) {
               <p class="text-sm text-warning mt-1" data-testid="mock-queue">
