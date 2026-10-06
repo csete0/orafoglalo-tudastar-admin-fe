@@ -104,6 +104,12 @@ export const routes: Routes = [
       import('./pages/admin/admin-novekedes.component').then((m) => m.AdminNovekedesComponent),
   },
   {
+    path: 'probaerettsegi',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-probaerettsegi.component').then((m) => m.AdminProbaerettsegiComponent),
+  },
+  {
     path: 'erettsegi-eredmenyek',
     canActivate: [authGuard],
     loadComponent: () =>

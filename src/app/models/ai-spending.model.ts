@@ -14,6 +14,7 @@ export const AI_SOURCES = [
   { key: 'project-error', label: 'Projektműhely: hibamagyarázat', color: 'var(--series-project-error)' },
   { key: 'office-grading', label: 'Irodai feladat értékelése (gyakorlás)', color: 'var(--series-office-grading)' },
   { key: 'exam-full', label: 'Teljes vizsga értékelése', color: 'var(--series-exam-full)' },
+  { key: 'mock-exam', label: 'Próbaérettségi', color: 'var(--series-mock-exam)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
