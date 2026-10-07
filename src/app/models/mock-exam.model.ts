@@ -66,6 +66,16 @@ export interface AdminMockExamMarketing {
   bySource: AdminMockExamSourceRow[];
 }
 
+/** A toplista moderálásához: aki becenévvel kérte a megjelenést (eredmény előtt rang/pont nélkül). */
+export interface AdminMockExamLeaderboardEntry {
+  registrationId: number;
+  level: string;
+  publicName: string;
+  rank: number | null;
+  percent: number | null;
+  hiddenByAdminAt: string | null;
+}
+
 export interface AdminMockExamStatus {
   event: AdminMockExam;
   registrations: { kozep: number; emelt: number; teacherSourced: number; groups: number };

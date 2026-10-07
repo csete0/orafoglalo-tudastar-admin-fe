@@ -32,9 +32,15 @@ async function settle(): Promise<void> {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
 }
 
+const LEADERBOARD = [
+  { registrationId: 11, level: 'kozep', publicName: 'Anna', rank: 1, percent: 92.5, hiddenByAdminAt: null },
+  { registrationId: 12, level: 'kozep', publicName: 'Csúnya Név', rank: 2, percent: 80, hiddenByAdminAt: '2026-11-30T19:00:00' },
+];
+
 describe('AdminProbaerettsegiComponent', () => {
   async function render(s: AdminMockExamStatus) {
-    const api = { list: vi.fn(() => of([EVENT])), status: vi.fn(() => of(s)), raiseBudget: vi.fn(() => of(EVENT)), taskSetOptions: vi.fn(() => of([])), create: vi.fn(() => of(EVENT)) };
+    const api = { list: vi.fn(() => of([EVENT])), status: vi.fn(() => of(s)), raiseBudget: vi.fn(() => of(EVENT)), taskSetOptions: vi.fn(() => of([])), create: vi.fn(() => of(EVENT)),
+      leaderboard: vi.fn(() => of(LEADERBOARD)), hideRegistration: vi.fn(() => of(undefined)) };
     const confirm = { ask: vi.fn().mockResolvedValue(true) };
     TestBed.configureTestingModule({
       imports: [AdminProbaerettsegiComponent],
@@ -99,6 +105,25 @@ describe('AdminProbaerettsegiComponent', () => {
     await settle();
     expect(api.create).not.toHaveBeenCalled();
     expect(toast.danger).toHaveBeenCalledWith(expect.stringContaining('Gyakorlóként felszabadul'));
+  });
+
+  it('toplista-moderálás: a becenevesek listája; levétel megerősítéssel, visszahelyezés közvetlenül', async () => {
+    const { fixture, el, api, confirm } = await render(status());
+    const table = el.querySelector('[data-testid="mock-leaderboard"]')!.textContent!;
+    expect(table).toContain('Anna');
+    expect(table).toContain('(levéve)');
+
+    (el.querySelector('[data-testid="mock-hide-11"]') as HTMLButtonElement).click();
+    await settle();
+    expect(confirm.ask).toHaveBeenCalled();
+    expect(api.hideRegistration).toHaveBeenCalledWith(11, true);
+
+    confirm.ask.mockClear();
+    (el.querySelector('[data-testid="mock-hide-12"]') as HTMLButtonElement).click();
+    await settle();
+    fixture.detectChanges();
+    expect(confirm.ask).not.toHaveBeenCalled();
+    expect(api.hideRegistration).toHaveBeenCalledWith(12, false);
   });
 
   it('időpont-segédek: zóna nélküli UTC, budapesti űrlap-érték; konverzió', () => {

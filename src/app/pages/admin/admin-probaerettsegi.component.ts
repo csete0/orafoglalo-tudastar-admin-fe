@@ -8,6 +8,7 @@ import { ToastService } from '../../shared/toast/toast.service';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 import {
+  AdminMockExamLeaderboardEntry,
   AdminMockExam, AdminMockExamSourceRow, AdminMockExamStatus, AdminMockExamTaskSetOption, AdminMockExamUpsert, asUtc, toBudapestInput,
 } from '../../models/mock-exam.model';
 
@@ -225,6 +226,33 @@ const DAY_LABELS = ['1. nap', '2. nap', '3. nap', '4. nap', '5. nap', '6. nap', 
               </table>
             </div>
           </div>
+          <div class="card p-5 mt-4" data-testid="mock-leaderboard">
+            <h3 class="font-bold">Toplista (becenévvel jelentkezők)</h3>
+            <p class="text-xs text-text-muted mt-0.5">A nem odaillő becenevet leveheted - a nyilvános toplistáról és a megosztott kártyáról azonnal eltűnik.</p>
+            <div class="overflow-x-auto mt-3">
+              <table class="w-full text-sm">
+                <thead><tr class="text-left text-xs text-text-muted">
+                  <th class="py-2 pr-3">Szint</th><th class="pr-3 text-right">Helyezés</th><th class="pr-3">Becenév</th><th class="pr-3 text-right">Eredmény</th><th></th>
+                </tr></thead>
+                <tbody>
+                  @for (e of leaderboard(); track e.registrationId) {
+                    <tr class="border-t border-border-default" [class.opacity-60]="e.hiddenByAdminAt">
+                      <td class="py-1.5 pr-3">{{ e.level === 'emelt' ? 'emelt' : 'közép' }}</td>
+                      <td class="pr-3 text-right tabular-nums">{{ e.rank === null ? '–' : e.rank + '.' }}</td>
+                      <td class="pr-3">{{ e.publicName }} @if (e.hiddenByAdminAt) { <span class="text-xs text-warning">(levéve)</span> }</td>
+                      <td class="pr-3 text-right tabular-nums">{{ e.percent === null ? '–' : (e.percent | number: '1.0-1') + '%' }}</td>
+                      <td class="text-right">
+                        <button type="button" class="btn btn-ghost text-xs" [disabled]="busy()" [attr.data-testid]="'mock-hide-' + e.registrationId"
+                          (click)="toggleHidden(e)">{{ e.hiddenByAdminAt ? 'Visszahelyezés' : 'Levétel' }}</button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="5" class="py-3 text-text-muted">Senki nem kérte a toplistás megjelenést.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         } @else if (!form() && !events().length) {
           <p class="text-text-muted">Még nincs próbaérettségi. Hozz létre egyet az „Új esemény” gombbal.</p>
         }
@@ -242,6 +270,8 @@ export class AdminProbaerettsegiComponent implements OnInit {
   readonly taskSetOptions = signal<AdminMockExamTaskSetOption[]>([]);
   readonly selected = signal<AdminMockExam | null>(null);
   readonly status = signal<AdminMockExamStatus | null>(null);
+  /** A becenévvel jelentkezők a toplista-moderáláshoz (a rejtettek is). */
+  readonly leaderboard = signal<AdminMockExamLeaderboardEntry[]>([]);
   readonly form = signal<AdminMockExamUpsert | null>(null);
   readonly editingId = signal<number | null>(null);
   readonly loading = signal(true);
@@ -279,7 +309,9 @@ export class AdminProbaerettsegiComponent implements OnInit {
 
   private async loadStatus(id: number): Promise<void> {
     try {
-      this.status.set(await firstValueFrom(this.api.status(id)));
+      const [status, leaderboard] = await Promise.all([firstValueFrom(this.api.status(id)), firstValueFrom(this.api.leaderboard(id))]);
+      this.status.set(status);
+      this.leaderboard.set(leaderboard);
     } catch (err) {
       this.toast.danger(extractErrorMessage(err, 'A státusz betöltése nem sikerült.'));
     }
@@ -420,6 +452,22 @@ export class AdminProbaerettsegiComponent implements OnInit {
     ];
     return steps.map((s) => ({ label: s.label, value: s.value, rate: s.prev === null ? null : conversion(s.value, s.prev),
       width: Math.max(2, Math.round((60 * s.value) / top)) }));
+  }
+
+  /** Toplistáról levétel (megerősítéssel) vagy visszahelyezés - a nyilvános eredmény azonnal frissül. */
+  async toggleHidden(entry: AdminMockExamLeaderboardEntry): Promise<void> {
+    const hide = !entry.hiddenByAdminAt;
+    if (hide && !(await this.confirm.ask({
+      title: 'Levétel a toplistáról',
+      message: `„${entry.publicName}” becenév nem jelenik meg a nyilvános toplistán és a megosztott kártyán. Később visszahelyezhető.`,
+      confirmLabel: 'Levétel',
+    }))) return;
+    const ev = this.selected();
+    await this.run(async () => {
+      await firstValueFrom(this.api.hideRegistration(entry.registrationId, hide));
+      this.toast.success(hide ? 'Levéve a toplistáról.' : 'Visszahelyezve a toplistára.');
+      if (ev) await this.loadStatus(ev.id);
+    });
   }
 
   private async run(action: () => Promise<void>): Promise<void> {

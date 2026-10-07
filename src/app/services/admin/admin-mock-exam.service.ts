@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AdminMockExam, AdminMockExamStatus, AdminMockExamTaskSetOption, AdminMockExamUpsert } from '../../models/mock-exam.model';
+import { AdminMockExam, AdminMockExamLeaderboardEntry, AdminMockExamStatus, AdminMockExamTaskSetOption, AdminMockExamUpsert } from '../../models/mock-exam.model';
 
 /** Próbaérettségi - admin (api/admin/mock-exams). */
 @Injectable({ providedIn: 'root' })
@@ -48,6 +48,10 @@ export class AdminMockExamService {
 
   status(id: number): Observable<AdminMockExamStatus> {
     return this.http.get<AdminMockExamStatus>(`${this.base}/${id}/status`);
+  }
+
+  leaderboard(id: number): Observable<AdminMockExamLeaderboardEntry[]> {
+    return this.http.get<AdminMockExamLeaderboardEntry[]>(`${this.base}/${id}/leaderboard`);
   }
 
   hideRegistration(registrationId: number, hidden: boolean): Observable<void> {
