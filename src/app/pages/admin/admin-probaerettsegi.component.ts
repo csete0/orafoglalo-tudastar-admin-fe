@@ -49,7 +49,7 @@ const DAY_LABELS = ['1. nap', '2. nap', '3. nap', '4. nap', '5. nap', '6. nap', 
         </div>
 
         @if (form(); as f) {
-          <form class="card p-5 mb-6 grid gap-3 md:grid-cols-2" (ngSubmit)="save()" data-testid="mock-form">
+          <form #mf="ngForm" class="card p-5 mb-6 grid gap-3 md:grid-cols-2" (ngSubmit)="save(mf.valid === true)" data-testid="mock-form">
             <h2 class="font-bold md:col-span-2">{{ editingId() ? 'Esemény módosítása' : 'Új esemény' }}</h2>
             @if (editingHasSessions()) {
               <p class="text-xs text-warning md:col-span-2">Már elindult: csak a cím, az eredmény és a gyakorló időpontja módosítható. A keretet a „Keret emelése” gombbal.</p>
@@ -315,9 +315,14 @@ export class AdminProbaerettsegiComponent implements OnInit {
     if (!this.taskSetOptions().length) this.taskSetOptions.set(await firstValueFrom(this.api.taskSetOptions()));
   }
 
-  async save(): Promise<void> {
+  async save(valid = true): Promise<void> {
     const f = this.form();
     if (!f) return;
+    // Üres időpontnál a szerver nyers, angol JSON-hibát adna - előbb itt, érthetően.
+    if (!valid) {
+      this.toast.danger('Tölts ki minden kötelező mezőt: a cím, az azonosító és mind az öt időpont (a „Gyakorlóként felszabadul” is) kötelező.');
+      return;
+    }
     const request = { ...f, badgeKeyPrefix: f.badgeKeyPrefix?.trim() || null };
     await this.run(async () => {
       const id = this.editingId();

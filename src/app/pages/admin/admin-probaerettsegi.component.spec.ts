@@ -34,7 +34,7 @@ async function settle(): Promise<void> {
 
 describe('AdminProbaerettsegiComponent', () => {
   async function render(s: AdminMockExamStatus) {
-    const api = { list: vi.fn(() => of([EVENT])), status: vi.fn(() => of(s)), raiseBudget: vi.fn(() => of(EVENT)), taskSetOptions: vi.fn(() => of([])) };
+    const api = { list: vi.fn(() => of([EVENT])), status: vi.fn(() => of(s)), raiseBudget: vi.fn(() => of(EVENT)), taskSetOptions: vi.fn(() => of([])), create: vi.fn(() => of(EVENT)) };
     const confirm = { ask: vi.fn().mockResolvedValue(true) };
     TestBed.configureTestingModule({
       imports: [AdminProbaerettsegiComponent],
@@ -45,7 +45,7 @@ describe('AdminProbaerettsegiComponent', () => {
     fixture.detectChanges();
     await settle();
     fixture.detectChanges();
-    return { fixture, el: fixture.nativeElement as HTMLElement, api, confirm };
+    return { fixture, el: fixture.nativeElement as HTMLElement, api, confirm, toast: TestBed.inject(ToastService) };
   }
 
   afterEach(() => vi.restoreAllMocks());
@@ -86,6 +86,19 @@ describe('AdminProbaerettsegiComponent', () => {
     expect(table).toContain('30 (75%)');
     expect(table).toContain('3 (13%)');
     expect(full.el.querySelector('[data-testid="mock-marketing"]')!.textContent).toContain('0.7×');
+  });
+
+  it('új esemény üres kötelező mezővel: nem küld, érthető magyar üzenet (nem a szerver nyers hibája)', async () => {
+    const { fixture, el, api, toast } = await render(status());
+    (el.querySelector('[data-testid="mock-new"]') as HTMLButtonElement).click();
+    await settle();
+    fixture.detectChanges();
+    await settle(); // az ngModel-vezérlők érvényessége a következő körben áll be
+    fixture.detectChanges();
+    (el.querySelector('[data-testid="mock-form"] button[type="submit"]') as HTMLButtonElement).click();
+    await settle();
+    expect(api.create).not.toHaveBeenCalled();
+    expect(toast.danger).toHaveBeenCalledWith(expect.stringContaining('Gyakorlóként felszabadul'));
   });
 
   it('időpont-segédek: zóna nélküli UTC, budapesti űrlap-érték; konverzió', () => {
