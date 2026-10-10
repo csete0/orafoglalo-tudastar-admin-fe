@@ -12,6 +12,12 @@ function makeSchool(overrides: Partial<SchoolAdminDto> = {}): SchoolAdminDto {
     teacherCount: 1,
     groupCount: 2,
     adminDisplayNames: ['Teszt Tanár'],
+    createdByName: null,
+    createdByEmail: null,
+    hasLicense: false,
+    publicApprovedAt: null,
+    publicApprovedByEmail: null,
+    mockExamRegistrationCount: 0,
     ...overrides,
   };
 }
@@ -29,12 +35,14 @@ describe('AdminSchoolStore', () => {
   let serviceMock: {
     getSchools: ReturnType<typeof vi.fn>;
     merge: ReturnType<typeof vi.fn>;
+    setPublicApproval: ReturnType<typeof vi.fn>;
   };
 
   function configure() {
     serviceMock = {
       getSchools: vi.fn(),
       merge: vi.fn(),
+      setPublicApproval: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -145,5 +153,33 @@ describe('AdminSchoolStore', () => {
     await Promise.resolve();
 
     expect(store.loading()).toBe(false);
+  });
+
+  it('setPublicApproval siker esetén újratölti a listát', async () => {
+    serviceMock.getSchools.mockReturnValue(of([makeSchool({ publicApprovedAt: '2026-10-10T10:00:00Z' })]));
+    serviceMock.setPublicApproval.mockReturnValue(of(undefined));
+
+    const store = TestBed.inject(AdminSchoolStore);
+    store.setPublicApproval(1, true);
+    await Promise.resolve();
+
+    expect(serviceMock.setPublicApproval).toHaveBeenCalledWith(1, true);
+    expect(serviceMock.getSchools).toHaveBeenCalled();
+    expect(store.schools()[0].publicApprovedAt).not.toBeNull();
+    expect(store.loading()).toBe(false);
+  });
+
+  it('setPublicApproval hiba esetén beállítja az error jelzőt és leveszi a loading-ot', async () => {
+    serviceMock.setPublicApproval.mockReturnValue(
+      throwError(() => ({ error: { errorMessage: 'Az intézmény nem található.' } })),
+    );
+
+    const store = TestBed.inject(AdminSchoolStore);
+    store.setPublicApproval(1, false);
+    await Promise.resolve();
+
+    expect(store.error()).toBe('Az intézmény nem található.');
+    expect(store.loading()).toBe(false);
+    expect(serviceMock.getSchools).not.toHaveBeenCalled();
   });
 });

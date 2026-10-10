@@ -16,6 +16,12 @@ function makeSchool(overrides: Partial<SchoolAdminDto> = {}): SchoolAdminDto {
     teacherCount: 2,
     groupCount: 3,
     adminDisplayNames: [],
+    createdByName: null,
+    createdByEmail: null,
+    hasLicense: false,
+    publicApprovedAt: null,
+    publicApprovedByEmail: null,
+    mockExamRegistrationCount: 0,
     ...overrides,
   };
 }
@@ -50,6 +56,7 @@ describe('AdminIntezmenyekComponent', () => {
     lastMergeResult: ReturnType<typeof signal<unknown>>;
     load: ReturnType<typeof vi.fn>;
     merge: ReturnType<typeof vi.fn>;
+    setPublicApproval: ReturnType<typeof vi.fn>;
   };
   let licenseStoreMock: {
     licenses: ReturnType<typeof signal<InstitutionalLicenseDto[]>>;
@@ -83,6 +90,7 @@ describe('AdminIntezmenyekComponent', () => {
       lastMergeResult: signal(null),
       load: vi.fn(),
       merge: vi.fn(),
+      setPublicApproval: vi.fn(),
     };
     licenseStoreMock = {
       licenses: signal(licenses),
@@ -1034,5 +1042,54 @@ describe('AdminIntezmenyekComponent', () => {
     // az összegzőnek ezt kellene tükröznie, nem a régi, már érvénytelen, tágabb keretet.
     expect(text).toContain('Csúcs: 2/2 hely');
     expect(text).not.toContain('Csúcs: 2/5 hely');
+  });
+
+  // Próbaérettségi iskolakereső: licenc nélküli intézmény csak admin-jóváhagyással nyilvános.
+  describe('próbaérettségi-nyilvánosság', () => {
+    const pending = makeSchool({ id: 1, name: 'Várakozó Suli' });
+    const approved = makeSchool({ id: 2, name: 'Jóváhagyott Suli', publicApprovedAt: '2026-10-10T10:00:00Z' });
+    const licensed = makeSchool({ id: 3, name: 'Licencelt Suli', hasLicense: true });
+
+    it('licenc nélküli intézménynél kapcsoló, licencelt intézménynél csak címke jelenik meg', () => {
+      configure([pending, licensed]);
+      const fixture = TestBed.createComponent(AdminIntezmenyekComponent);
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+
+      expect(el.querySelector('[data-testid="public-approval-1"] input[type="checkbox"]')).not.toBeNull();
+      expect(el.querySelector('[data-testid="public-approval-1"]')?.textContent).toContain('jóváhagyásra vár');
+      expect(el.querySelector('[data-testid="public-approval-3"] input[type="checkbox"]')).toBeNull();
+      expect(el.querySelector('[data-testid="public-approval-3"]')?.textContent).toContain('licenc alapján');
+    });
+
+    it('jóváhagyás megerősítés után hívja a store-t', async () => {
+      configure([pending]);
+      const component = TestBed.createComponent(AdminIntezmenyekComponent).componentInstance;
+
+      await component.confirmPublicToggle(pending);
+
+      expect(confirmServiceMock.ask).toHaveBeenCalledWith(expect.objectContaining({ confirmLabel: 'Jóváhagyás', danger: false }));
+      expect(storeMock.setPublicApproval).toHaveBeenCalledWith(1, true);
+    });
+
+    it('visszavonás veszélyes műveletként kér megerősítést; elutasításnál nem hív semmit', async () => {
+      configure([approved]);
+      confirmServiceMock.ask.mockResolvedValue(false);
+      const component = TestBed.createComponent(AdminIntezmenyekComponent).componentInstance;
+
+      await component.confirmPublicToggle(approved);
+
+      expect(confirmServiceMock.ask).toHaveBeenCalledWith(expect.objectContaining({ confirmLabel: 'Visszavonás', danger: true }));
+      expect(storeMock.setPublicApproval).not.toHaveBeenCalled();
+    });
+
+    it('a "csak jóváhagyásra várók" szűrő a licenc nélküli, jóvá nem hagyott intézményeket mutatja', () => {
+      configure([pending, approved, licensed]);
+      const component = TestBed.createComponent(AdminIntezmenyekComponent).componentInstance;
+
+      expect(component.pendingPublicCount()).toBe(1);
+      component.onlyPendingPublic.set(true);
+      expect(component.visibleSchools().map((s) => s.id)).toEqual([1]);
+    });
   });
 });

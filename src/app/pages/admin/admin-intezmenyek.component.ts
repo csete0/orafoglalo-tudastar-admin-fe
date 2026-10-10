@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminSchoolStore } from '../../services/admin/admin-school.store';
@@ -92,8 +92,14 @@ import {
         </div>
       </div>
 
+      <label class="inline-flex items-center gap-2 text-sm mb-3">
+        <input type="checkbox" [checked]="onlyPendingPublic()" (change)="onlyPendingPublic.set(!onlyPendingPublic())"
+               data-testid="only-pending-public" />
+        Csak a próbaérettségi-jóváhagyásra várók ({{ pendingPublicCount() }})
+      </label>
+
       <ul class="space-y-3">
-        @for (school of store.schools(); track school.id) {
+        @for (school of visibleSchools(); track school.id) {
           <li class="card p-4 flex gap-3">
             <div class="icon-tile icon-tile-primary">
               <app-icon name="building" class="w-6 h-6 block" />
@@ -109,7 +115,32 @@ import {
               <p class="text-xs text-text-muted mt-1">
                 {{ school.teacherCount }} tanár · {{ school.groupCount }} csoport ·
                 létrehozva {{ school.createdAt | date: 'yyyy.MM.dd' }}
+                @if (school.createdByName || school.createdByEmail) {
+                  · {{ school.createdByName }}@if (school.createdByEmail) { ({{ school.createdByEmail }})}
+                }
               </p>
+
+              <!-- Próbaérettségi iskolakereső (BE: MockExamSchools): licenccel automatikusan nyilvános,
+                   licenc nélkül csak admin-jóváhagyással - a tanárok tetszőleges névvel hozhatnak létre intézményt. -->
+              <div class="mt-2 flex items-center gap-2 flex-wrap text-xs" [attr.data-testid]="'public-approval-' + school.id">
+                @if (school.hasLicense) {
+                  <span class="badge badge-success">Nyilvános (licenc alapján)</span>
+                } @else {
+                  <label class="inline-flex items-center gap-1.5">
+                    <input type="checkbox" [checked]="!!school.publicApprovedAt" [disabled]="store.loading()"
+                           (click)="$event.preventDefault(); confirmPublicToggle(school)" />
+                    Nyilvános (próbaérettségi)
+                  </label>
+                  @if (school.publicApprovedAt) {
+                    <span class="text-text-muted">
+                      jóváhagyva {{ school.publicApprovedAt | date: 'yyyy.MM.dd' }}@if (school.publicApprovedByEmail) {, {{ school.publicApprovedByEmail }}}
+                    </span>
+                  } @else {
+                    <span class="badge badge-warning">jóváhagyásra vár</span>
+                  }
+                }
+                <span class="text-text-muted">· {{ school.mockExamRegistrationCount }} próbaérettségi-jelentkezés</span>
+              </div>
 
               <!-- Licenc-keretek: az intézményhez tartoznak, ezért itt jelennek meg,
                    nem külön menüpontban (a fejléc-navigáció 6 linkre van méretezve,
@@ -392,6 +423,13 @@ export class AdminIntezmenyekComponent {
   sourceId: number | null = null;
   targetId: number | null = null;
 
+  /** Licenc nélküli, még nem jóváhagyott intézmények - ezek nem látszanak a próbaérettségi iskolakeresőben. */
+  readonly onlyPendingPublic = signal(false);
+  readonly pendingPublicCount = computed(() => this.store.schools().filter(isPendingPublic).length);
+  readonly visibleSchools = computed(() =>
+    this.onlyPendingPublic() ? this.store.schools().filter(isPendingPublic) : this.store.schools(),
+  );
+
   expandedLicenseId: number | null = null;
   expandedUsageLicenseId: number | null = null;
 
@@ -664,6 +702,27 @@ export class AdminIntezmenyekComponent {
     return `${school.name}${city} (#${school.id})`;
   }
 
+  // A checkbox kattintása önmagában nem vált (preventDefault a sablonban): a valódi állapot a
+  // megerősítés és a sikeres mentés utáni újratöltésből jön.
+  async confirmPublicToggle(school: SchoolAdminDto): Promise<void> {
+    if (this.store.loading() || school.hasLicense) return;
+
+    const approve = !school.publicApprovedAt;
+    const label = this.schoolLabel(school);
+    const ok = await this.confirmService.ask({
+      message: approve
+        ? `Jóváhagyod a(z) „${label}” intézményt? Megjelenik a próbaérettségi nyilvános iskolakeresőjében és ` +
+          'iskola-összesítőjében. Csak valódi, ellenőrzött iskolát hagyj jóvá.'
+        : `Visszavonod a(z) „${label}” jóváhagyását? Nem lesz választható a próbaérettségi iskolakeresőben, ` +
+          'és kikerül a nyilvános iskola-összesítőből (a meglévő jelentkezések megmaradnak).',
+      danger: !approve,
+      confirmLabel: approve ? 'Jóváhagyás' : 'Visszavonás',
+    });
+    if (!ok) return;
+
+    this.store.setPublicApproval(school.id, approve);
+  }
+
   async confirmMerge(): Promise<void> {
     if (!this.canMerge() || this.sourceId === null || this.targetId === null || this.store.loading()) return;
 
@@ -688,4 +747,8 @@ export class AdminIntezmenyekComponent {
     this.sourceId = null;
     this.targetId = null;
   }
+}
+
+function isPendingPublic(school: SchoolAdminDto): boolean {
+  return !school.hasLicense && !school.publicApprovedAt;
 }

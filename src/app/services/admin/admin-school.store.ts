@@ -74,6 +74,25 @@ export class AdminSchoolStore {
       });
   }
 
+  /** Próbaérettségi-nyilvánosság jóváhagyása / visszavonása; sikerre a lista újratöltődik (merge() mintája). */
+  setPublicApproval(schoolId: number, approved: boolean): void {
+    if (this._loading()) return;
+
+    this._loading.set(true);
+    this._error.set(null);
+
+    this.service
+      .setPublicApproval(schoolId, approved)
+      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.load(),
+        error: (err) => {
+          this._error.set(err.error?.errorMessage ?? 'A nyilvánosság módosítása sikertelen.');
+          this._loading.set(false);
+        },
+      });
+  }
+
   clearLastMergeResult(): void {
     this._lastMergeResult.set(null);
   }
