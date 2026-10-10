@@ -29,6 +29,8 @@
   --series-office-grading: #9aa83a;
   --series-exam-full: #e0a33a;
   --series-mock-exam: #c2417a;
+  --series-code-practice: #4fb3a0;
+  --series-exam-rubric-draft: #a0785a;
 }
 
 /* A tanári felületről áthozott oldalak (§3 migráció) a tanári app Tailwind-témájának
