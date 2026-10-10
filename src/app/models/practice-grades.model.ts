@@ -21,6 +21,7 @@ export const PRACTICE_TIER_LABELS: Record<string, string> = {
   standard: 'Standard',
   premium: 'Prémium',
   institutional: 'Intézményi',
+  unknown: 'Ismeretlen (régi sor)',
 };
 
 /** Darab és költség egy időszakra. */

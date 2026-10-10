@@ -15,6 +15,8 @@ export const AI_SOURCES = [
   { key: 'office-grading', label: 'Irodai feladat értékelése (gyakorlás)', color: 'var(--series-office-grading)' },
   { key: 'exam-full', label: 'Teljes vizsga értékelése', color: 'var(--series-exam-full)' },
   { key: 'mock-exam', label: 'Próbaérettségi', color: 'var(--series-mock-exam)' },
+  { key: 'code-practice', label: 'Kód/SQL feladat értékelése (gyakorlás)', color: 'var(--series-code-practice)' },
+  { key: 'exam-rubric-draft', label: 'Tanári szempontlista-vázlat', color: 'var(--series-exam-rubric-draft)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
