@@ -45,6 +45,13 @@ export interface SchoolAdminDto {
   teacherCount: number;
   groupCount: number;
   adminDisplayNames: string[];
+  // Próbaérettségi iskolakereső: licenc nélküli intézmény csak admin-jóváhagyással nyilvános.
+  createdByName: string | null;
+  createdByEmail: string | null;
+  hasLicense: boolean;
+  publicApprovedAt: string | null;
+  publicApprovedByEmail: string | null;
+  mockExamRegistrationCount: number;
 }
 
 export interface SchoolMergeResultDto {

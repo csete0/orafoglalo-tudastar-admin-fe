@@ -19,4 +19,9 @@ export class AdminSchoolService {
       targetSchoolId,
     });
   }
+
+  setPublicApproval(schoolId: number, approved: boolean): Observable<void> {
+    const url = `${this.baseUrl}/schools/${schoolId}/public-approval`;
+    return approved ? this.http.post<void>(url, null) : this.http.delete<void>(url);
+  }
 }
