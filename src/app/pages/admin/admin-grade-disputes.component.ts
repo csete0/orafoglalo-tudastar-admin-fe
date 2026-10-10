@@ -29,6 +29,18 @@ import { ToastService } from '../../shared/toast/toast.service';
           {{ option.label }}
         </button>
       }
+      <span class="w-px bg-border-default mx-1" aria-hidden="true"></span>
+      @for (option of kindOptions; track option.label) {
+        <button (click)="setKind(option.value)" [attr.aria-pressed]="kind() === option.value"
+          class="px-3 py-1.5 rounded-lg border font-semibold transition-colors"
+          [class.bg-primary]="kind() === option.value"
+          [class.text-white]="kind() === option.value"
+          [class.border-primary]="kind() === option.value"
+          [class.border-border-default]="kind() !== option.value"
+          [class.text-text-muted]="kind() !== option.value">
+          {{ option.label }}
+        </button>
+      }
     </div>
 
     @if (error()) {
@@ -45,7 +57,7 @@ import { ToastService } from '../../shared/toast/toast.service';
                 <p class="font-semibold">{{ d.taskSetTitle }} – {{ d.taskTitle }}</p>
                 <p class="text-xs text-text-muted mt-0.5">
                   {{ d.studentName || d.studentEmail }} ({{ d.studentEmail }}) ·
-                  {{ d.examSessionId ? 'vizsga #' + d.examSessionId : 'gyakorlás' }} ·
+                  {{ d.examSessionId ? 'vizsga #' + d.examSessionId : 'gyakorlás' }}{{ d.kind === 'code' ? ' (kód/SQL)' : '' }} ·
                   {{ d.rawPoints }}/{{ d.rawTotal }} nyers pont · {{ d.model }}{{ d.rubricStatus === 'draft' ? ' · vázlat-útmutató' : '' }}
                 </p>
               </div>
@@ -138,6 +150,8 @@ export class AdminGradeDisputesComponent implements OnInit {
   readonly pending = signal(false);
   readonly error = signal<string | null>(null);
   readonly onlyOpen = signal(true);
+  /** Fajta-szűrő: a gyakorló kód-értékelés kifogásai ugyanerre a várólistára jönnek (D9). */
+  readonly kind = signal<'files' | 'code' | null>(null);
   readonly page = signal(1);
   readonly totalCount = signal(0);
   readonly totalPages = () => Math.max(1, Math.ceil(this.totalCount() / this.pageSize));
@@ -150,7 +164,19 @@ export class AdminGradeDisputesComponent implements OnInit {
     { value: false, label: 'Összes' },
   ];
 
+  readonly kindOptions: { value: 'files' | 'code' | null; label: string }[] = [
+    { value: null, label: 'Minden fajta' },
+    { value: 'files', label: 'Irodai / weblap' },
+    { value: 'code', label: 'Kód / SQL' },
+  ];
+
   ngOnInit(): void {
+    this.load();
+  }
+
+  setKind(value: 'files' | 'code' | null): void {
+    this.kind.set(value);
+    this.page.set(1);
     this.load();
   }
 
@@ -203,7 +229,7 @@ export class AdminGradeDisputesComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.svc.list(this.onlyOpen(), this.page(), this.pageSize).subscribe({
+    this.svc.list(this.onlyOpen(), this.page(), this.pageSize, this.kind()).subscribe({
       next: res => {
         this.disputes.set(res.items);
         this.totalCount.set(res.totalCount);

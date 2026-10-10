@@ -42,7 +42,7 @@ describe('AdminGradeDisputesComponent', () => {
   it('a kifogást a diák indokával, a fájllal és csak a pontot vesztett szempontokkal mutatja', () => {
     const el: HTMLElement = render().nativeElement;
     const row = el.querySelector('[data-testid="grade-dispute-row"]')!;
-    expect(svc.list).toHaveBeenCalledWith(true, 1, 20);
+    expect(svc.list).toHaveBeenCalledWith(true, 1, 20, null);
     expect(row.textContent).toContain('A margó 2 cm volt.');
     expect(row.textContent).toContain('vizsga #2442');
     expect(row.textContent).toContain('danuvia.docx (81 KB)');
@@ -73,5 +73,18 @@ describe('AdminGradeDisputesComponent', () => {
     fixture.componentInstance.resolve(dispute());
     expect(svc.resolve).toHaveBeenCalledWith(3, 'Igazad van.', []);
     expect(svc.list).toHaveBeenCalledTimes(2);
+  });
+
+  // PATRICKS-GYAKORLO-ERTEKELES-TERV.md, 6b: a gyakorló kód-értékelés kifogásai is ide jönnek, fajta szerint szűrhetők.
+  it('a fajta-szűrő a kind paraméterrel, az első oldalról tölt újra, és a kód-kifogást jelöli', () => {
+    svc.list.mockReturnValue(of({ items: [dispute({ kind: 'code', examSessionId: null })], totalCount: 1 }));
+    const fixture = render();
+    const el: HTMLElement = fixture.nativeElement;
+    const codeButton = Array.from(el.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Kód / SQL')!;
+    codeButton.click();
+    fixture.detectChanges();
+
+    expect(svc.list).toHaveBeenLastCalledWith(true, 1, 20, 'code');
+    expect(el.querySelector('[data-testid="grade-dispute-row"]')!.textContent).toContain('gyakorlás (kód/SQL)');
   });
 });

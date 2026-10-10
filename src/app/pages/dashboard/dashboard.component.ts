@@ -29,5 +29,6 @@ export class DashboardComponent {
     { label: 'Növekedés', note: 'kohorszok, aktiválódás, megmaradás, lemondási okok', route: '/novekedes' },
     { label: 'Érettségi-eredmények', note: 'valódi eredmények, előrejelzés-pontosság, idézetek', route: '/erettsegi-eredmenyek' },
     { label: 'Szempontlisták', note: 'a hivatalos feladatok pontozási szempontjai, jóváhagyás', route: '/szempontlistak' },
+    { label: 'Gyakorló értékelések', note: 'darab, költség, keret-kihasználtság, toplista', route: '/gyakorlo-ertekelesek' },
   ];
 }

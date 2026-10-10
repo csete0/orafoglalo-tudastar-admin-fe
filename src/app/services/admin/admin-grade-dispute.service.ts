@@ -10,8 +10,10 @@ export class AdminGradeDisputeService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/grade-disputes`;
 
-  list(onlyOpen = true, page = 1, pageSize = 20): Observable<GradeDisputeList> {
-    const params = new HttpParams().set('onlyOpen', onlyOpen).set('page', page).set('pageSize', pageSize);
+  /** kind: null = minden fajta; 'files' / 'code' szűr (PATRICKS-GYAKORLO-ERTEKELES-TERV.md, 6b). */
+  list(onlyOpen = true, page = 1, pageSize = 20, kind: 'files' | 'code' | null = null): Observable<GradeDisputeList> {
+    let params = new HttpParams().set('onlyOpen', onlyOpen).set('page', page).set('pageSize', pageSize);
+    if (kind) params = params.set('kind', kind);
     return this.http.get<GradeDisputeList>(this.baseUrl, { params });
   }
 
