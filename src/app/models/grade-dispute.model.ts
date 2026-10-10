@@ -28,6 +28,8 @@ export interface GradeDispute {
   taskTitle: string;
   taskSetTitle: string;
   examSessionId: number | null;
+  /** Az értékelés fajtája (gyakorló kód-értékelés óta): 'files' (irodai/weblap) vagy 'code' (kód/SQL). Régi BE-nél hiányzik. */
+  kind?: 'files' | 'code';
   rubricStatus: string | null;
   model: string | null;
   rawPoints: number | null;

@@ -165,3 +165,50 @@ table a {
   color: var(--admin-text-muted);
   font-size: 0.8125rem;
 }
+
+/* Gyakorló értékelés: kézi keret-jóváírás. */
+.actions.credit {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.credit-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.credit-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.credit-form select,
+.credit-form input {
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text);
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.credit-form input[type='number'] {
+  width: 4.5rem;
+}
+
+.credit-form input[type='text'] {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.credits {
+  margin-top: 0.5rem;
+  color: var(--admin-text-muted);
+  font-size: 0.8125rem;
+}

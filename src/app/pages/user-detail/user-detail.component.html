@@ -187,4 +187,78 @@
       <p class="error">A Projektműhely-adatokat nem sikerült betölteni.</p>
     }
   </section>
+
+  <!-- Gyakorló értékelések (PATRICKS-GYAKORLO-ERTEKELES-TERV.md, 6b): a diák értékelései, a keret állása és a kézi jóváírás. -->
+  <section data-testid="practice-grades">
+    <h2>Gyakorló értékelések</h2>
+    @if (practice(); as pg) {
+      <dl>
+        <dt>Csomag</dt><dd>{{ tierLabels[pg.tier] ?? pg.tier }}</dd>
+        @for (q of pg.quotas; track q.kind) {
+          <dt>{{ kindLabels[q.kind] ?? q.kind }}</dt>
+          <dd data-testid="practice-quota">
+            ma {{ q.usedToday }} / {{ q.dailyLimit }}{{ q.creditToday ? ' (+' + q.creditToday + ' jóváírva)' : '' }}
+            @if (q.monthlyLimit !== null) { · a hónapban {{ q.usedThisMonth }} / {{ q.monthlyLimit }} }
+          </dd>
+        }
+      </dl>
+
+      @if (pg.quotas.length) {
+      <div class="actions credit">
+        <p class="credit-title">Kézi keret-jóváírás</p>
+        <div class="credit-form">
+          <select [(ngModel)]="creditKind" aria-label="Típus">
+            @for (q of pg.quotas; track q.kind) {
+              <option [value]="q.kind">{{ kindLabels[q.kind] ?? q.kind }}</option>
+            }
+          </select>
+          <input type="number" min="1" max="50" step="1" [(ngModel)]="creditAmount" aria-label="Darab" />
+          <input type="text" maxlength="300" [(ngModel)]="creditReason" placeholder="Indoklás (pl. support-jegy száma)" aria-label="Indoklás" />
+          <div class="action-buttons">
+            <button type="button" [disabled]="creditBusy() || !creditValid()" (click)="grantCredit()">Jóváírás</button>
+          </div>
+        </div>
+        @if (creditMessage()) {
+          <p class="action-message">{{ creditMessage() }}</p>
+        }
+      </div>
+      }
+
+      @if (pg.grades.length) {
+        <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Dátum</th><th>Típus</th><th>Feladat</th><th>Pont</th><th>Állapot</th><th>Költség</th></tr>
+          </thead>
+          <tbody>
+            @for (g of pg.grades; track g.id) {
+              <tr [class.flagged]="g.status === 'failed'">
+                <td>{{ g.createdAt | date: 'yyyy.MM.dd HH:mm' }}</td>
+                <td>{{ kindLabels[g.kind] ?? g.kind }}</td>
+                <td>{{ g.taskSetTitle }} – {{ g.taskTitle }}</td>
+                <td>{{ g.points !== null && g.max !== null ? g.points + ' / ' + g.max : '-' }}</td>
+                <td>{{ g.status }}</td>
+                <td>{{ g.costUsd !== null ? '$' + g.costUsd.toFixed(4) : '-' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+      } @else {
+        <p class="empty">Még nem kért gyakorló értékelést.</p>
+      }
+
+      @if (pg.credits?.length) {
+        <ul class="plain-list credits">
+          @for (c of pg.credits; track $index) {
+            <li>{{ c.createdAt | date: 'yyyy.MM.dd HH:mm' }} · +{{ c.amount }} {{ kindLabels[c.kind] ?? c.kind }} · {{ c.adminEmail }} · {{ c.reason }}</li>
+          }
+        </ul>
+      }
+    } @else if (practice() === null) {
+      <p class="error">A gyakorló értékeléseket nem sikerült betölteni.</p>
+    } @else {
+      <p class="empty">Betöltés...</p>
+    }
+  </section>
 }
