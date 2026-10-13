@@ -92,6 +92,12 @@ export const routes: Routes = [
       import('./pages/admin/admin-projektmuhely.component').then((m) => m.AdminProjektmuhelyComponent),
   },
   {
+    path: 'verseny',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-verseny.component').then((m) => m.AdminVersenyComponent),
+  },
+  {
     path: 'gyakorlo-ertekelesek',
     canActivate: [authGuard],
     loadComponent: () =>
