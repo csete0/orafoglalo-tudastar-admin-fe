@@ -18,6 +18,8 @@ function makeSchool(overrides: Partial<SchoolAdminDto> = {}): SchoolAdminDto {
     publicApprovedAt: null,
     publicApprovedByEmail: null,
     mockExamRegistrationCount: 0,
+    schoolType: null,
+    schoolTypeSetByAdmin: false,
     ...overrides,
   };
 }
@@ -36,6 +38,7 @@ describe('AdminSchoolStore', () => {
     getSchools: ReturnType<typeof vi.fn>;
     merge: ReturnType<typeof vi.fn>;
     setPublicApproval: ReturnType<typeof vi.fn>;
+    setType: ReturnType<typeof vi.fn>;
   };
 
   function configure() {
@@ -43,6 +46,7 @@ describe('AdminSchoolStore', () => {
       getSchools: vi.fn(),
       merge: vi.fn(),
       setPublicApproval: vi.fn(),
+      setType: vi.fn(),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -166,6 +170,23 @@ describe('AdminSchoolStore', () => {
     expect(serviceMock.setPublicApproval).toHaveBeenCalledWith(1, true);
     expect(serviceMock.getSchools).toHaveBeenCalled();
     expect(store.schools()[0].publicApprovedAt).not.toBeNull();
+    expect(store.loading()).toBe(false);
+  });
+
+  it('setType: siker után újratölti a listát (az admin-rögzítés látszik), hibánál a BE üzenete', async () => {
+    serviceMock.getSchools.mockReturnValue(of([makeSchool({ schoolType: 'technikum', schoolTypeSetByAdmin: true })]));
+    serviceMock.setType.mockReturnValue(of(undefined));
+    const store = TestBed.inject(AdminSchoolStore);
+    store.setType(1, 'technikum');
+    await Promise.resolve();
+    expect(serviceMock.setType).toHaveBeenCalledWith(1, 'technikum');
+    expect(store.schools()[0].schoolTypeSetByAdmin).toBe(true);
+    expect(store.loading()).toBe(false);
+
+    serviceMock.setType.mockReturnValue(throwError(() => ({ error: { errorMessage: 'Az intézmény nem található.' } })));
+    store.setType(9, 'gimnazium');
+    await Promise.resolve();
+    expect(store.error()).toBe('Az intézmény nem található.');
     expect(store.loading()).toBe(false);
   });
 

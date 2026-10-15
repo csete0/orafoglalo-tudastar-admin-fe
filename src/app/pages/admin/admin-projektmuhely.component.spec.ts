@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { AdminProjektmuhelyComponent } from './admin-projektmuhely.component';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
 import { AI_SOURCES } from '../../models/ai-spending.model';
-import { ProjectAdminCosts, ProjectAdminFunnel, ProjectAdminOverview } from '../../models/projektmuhely.model';
+import { ProjectAdminCosts, ProjectAdminFunnel, ProjectAdminOverview, ProjectAdminTechnikumStats } from '../../models/projektmuhely.model';
 
 const overview: ProjectAdminOverview = {
   days: 30,
@@ -28,9 +28,19 @@ const costs: ProjectAdminCosts = {
   byProject: [{ slug: 'bufe-rendelo', title: 'Büfé-rendelő', aiRequests: 3, aiCostUsd: 0.004, checks: 12, previews: 2, judge0CpuSeconds: 30, activeStudents: 8, aiCostPerActiveStudentUsd: 0.0005 }],
 };
 
+const technikum: ProjectAdminTechnikumStats = {
+  days: 30,
+  projects: [{ slug: 'konyvtar', title: 'Könyvtári kölcsönzés', kind: 'exam', isPublished: true, parts: [
+    { partKey: 'console', maxPoints: 15,
+      exam: { results: 2, students: 2, avgPercent: 60, failRatePercent: 50 },
+      practice: { results: 0, students: 0, avgPercent: null, failRatePercent: null } },
+  ] }],
+};
+
 describe('AdminProjektmuhelyComponent', () => {
   async function setup() {
-    const api = { getOverview: vi.fn(() => of(overview)), getCosts: vi.fn(() => of(costs)), getFunnel: vi.fn(() => of(funnel)) };
+    const api = { getOverview: vi.fn(() => of(overview)), getCosts: vi.fn(() => of(costs)), getFunnel: vi.fn(() => of(funnel)),
+      getTechnikum: vi.fn((days: number) => of({ ...technikum, days })) };
     TestBed.configureTestingModule({ imports: [AdminProjektmuhelyComponent], providers: [{ provide: AdminProjektmuhelyService, useValue: api }] });
     const fixture = TestBed.createComponent(AdminProjektmuhelyComponent);
     fixture.detectChanges();
@@ -68,5 +78,21 @@ describe('AdminProjektmuhelyComponent', () => {
     await c.setDays(7);
     expect(api.getOverview).toHaveBeenLastCalledWith(7);
     expect(api.getCosts).toHaveBeenLastCalledWith(7);
+  });
+
+  it('technikum: a fülre lépve tölt; részenként átlag és bukási arány vizsgára és gyakorlásra; időszakváltáskor újratölt', async () => {
+    const { c, el, fixture, api } = await setup();
+    expect(api.getTechnikum).not.toHaveBeenCalled();
+    await c.selectTab('technikum');
+    fixture.detectChanges();
+    expect(api.getTechnikum).toHaveBeenCalledWith(30);
+    const card = el.querySelector('[data-testid="technikum-konyvtar"]')!;
+    expect(card.textContent).toContain('próbavizsga');
+    const cells = [...card.querySelectorAll('tbody td')].map((td) => td.textContent!.trim());
+    expect(cells[0]).toContain('Konzolos alkalmazás');
+    expect(cells.slice(1)).toEqual(['2 (2)', '60.0%', '50.0%', '0 (0)', '–', '–']);
+
+    await c.setDays(7);
+    expect(api.getTechnikum).toHaveBeenLastCalledWith(7);
   });
 });
