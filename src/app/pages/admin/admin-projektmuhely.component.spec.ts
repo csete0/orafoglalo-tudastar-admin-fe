@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { AdminProjektmuhelyComponent } from './admin-projektmuhely.component';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
 import { AI_SOURCES } from '../../models/ai-spending.model';
@@ -94,5 +94,19 @@ describe('AdminProjektmuhelyComponent', () => {
 
     await c.setDays(7);
     expect(api.getTechnikum).toHaveBeenLastCalledWith(7);
+  });
+
+  it('technikum: a betöltés alatt töltésjelző, hibánál a BE üzenete (kikapcsolt modul) látszik', async () => {
+    const { c, el, fixture, api } = await setup();
+    api.getTechnikum.mockReturnValueOnce(throwError(() => ({ status: 404, error: { errorType: 'FeatureDisabled', errorMessage: 'A technikumi modul nincs bekapcsolva.' } })));
+    const pending = c.selectTab('technikum');
+    expect(c.technikumLoading()).toBe(true);
+    await pending;
+    fixture.detectChanges();
+    expect(c.technikumLoading()).toBe(false);
+    expect(el.textContent).toContain('A technikumi modul nincs bekapcsolva.');
+    api.getTechnikum.mockReturnValueOnce(throwError(() => new Error('x')));
+    await c.setDays(14);
+    expect(c.error()).toBe('A technikumi statisztikát nem sikerült betölteni.');
   });
 });

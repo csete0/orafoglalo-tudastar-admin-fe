@@ -439,11 +439,11 @@ export class AdminIntezmenyekComponent {
   sourceId: number | null = null;
   targetId: number | null = null;
 
-  /** Licenc nélküli, még nem jóváhagyott intézmények - ezek nem látszanak a próbaérettségi iskolakeresőben. */
   readonly schoolTypes: { value: SchoolType; label: string }[] = [
     { value: 'gimnazium', label: 'Gimnázium' },
     { value: 'technikum', label: 'Technikum' },
   ];
+  /** Licenc nélküli, még nem jóváhagyott intézmények - ezek nem látszanak a próbaérettségi iskolakeresőben. */
   readonly onlyPendingPublic = signal(false);
   readonly pendingPublicCount = computed(() => this.store.schools().filter(isPendingPublic).length);
   readonly visibleSchools = computed(() =>

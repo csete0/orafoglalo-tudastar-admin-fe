@@ -171,7 +171,9 @@ const PAD_BOTTOM = 22;
           }
 
           @case ('technikum') {
-            @if (technikum(); as t) {
+            @if (technikumLoading()) {
+              <app-local-spinner />
+            } @else if (technikum(); as t) {
               <p class="text-xs text-text-muted mb-4 max-w-2xl">
                 Technikumi projektek részenként, a bírált eredmények alapján ({{ t.days }} nap; a függő és a rendszerhibás bírálat nem számít).
                 Bukás: 40% alatti eredmény (a vizsga megfelelt-határa). Vizsga: önálló próbavizsga és dolgozat; gyakorlás: gyakorló ellenőrzés.
@@ -310,6 +312,7 @@ export class AdminProjektmuhelyComponent implements OnInit {
   readonly funnel = signal<ProjectAdminFunnel | null>(null);
   readonly funnelSlug = signal('');
   readonly technikum = signal<ProjectAdminTechnikumStats | null>(null);
+  readonly technikumLoading = signal(false);
 
   readonly totals = computed(() =>
     (this.overview()?.daily ?? []).reduce(
@@ -382,10 +385,14 @@ export class AdminProjektmuhelyComponent implements OnInit {
 
   private async loadTechnikum(): Promise<void> {
     this.error.set(null);
+    this.technikumLoading.set(true);
     try {
       this.technikum.set(await firstValueFrom(this.api.getTechnikum(this.days())));
-    } catch {
-      this.error.set('A technikumi statisztikát nem sikerült betölteni.');
+    } catch (err: any) {
+      const message = err?.error?.errorMessage;
+      this.error.set(typeof message === 'string' && message.trim() ? message : 'A technikumi statisztikát nem sikerült betölteni.');
+    } finally {
+      this.technikumLoading.set(false);
     }
   }
 
