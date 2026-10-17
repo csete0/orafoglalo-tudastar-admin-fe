@@ -17,6 +17,11 @@ export const AI_SOURCES = [
   { key: 'mock-exam', label: 'Próbaérettségi', color: 'var(--series-mock-exam)' },
   { key: 'code-practice', label: 'Kód/SQL feladat értékelése (gyakorlás)', color: 'var(--series-code-practice)' },
   { key: 'exam-rubric-draft', label: 'Tanári szempontlista-vázlat', color: 'var(--series-exam-rubric-draft)' },
+  { key: 'teacher-sql-schema', label: 'Tanár: SQL-fájl generálás', color: 'var(--series-teacher-sql-schema)' },
+  { key: 'teacher-sql-queries', label: 'Tanár: SQL megoldó lekérdezések', color: 'var(--series-teacher-sql-queries)' },
+  { key: 'teacher-ai-code-task', label: 'Tanár: AI programozási feladat', color: 'var(--series-teacher-ai-code-task)' },
+  { key: 'teacher-quiz-source', label: 'Tanár: kvíz szövegből', color: 'var(--series-teacher-quiz-source)' },
+  { key: 'teacher-test-feedback', label: 'Tanár: dolgozat-visszajelzés', color: 'var(--series-teacher-test-feedback)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
@@ -84,6 +89,45 @@ export interface AiSpendingClassTestTeacherDto {
   institutionName: string | null;
   gradedThisMonth: number;
   monthlyLimit: number;
+}
+
+/** Havi riport (GET ai-spending/monthly-report): egy ember havi AI-költése forrásonként. */
+export interface MonthlyReportPersonDto {
+  userId: number;
+  name: string;
+  email: string;
+  totalUsd: number;
+  requestCount: number;
+  bySource: Record<string, number>;
+}
+
+export interface MonthlyReportInstitutionDto {
+  schoolId: number;
+  schoolName: string;
+  totalUsd: number;
+  requestCount: number;
+  teachers: MonthlyReportPersonDto[];
+  students: MonthlyReportPersonDto[];
+}
+
+/** Rendszer-hívások, amelyek senkihez nem köthetők (pl. kvíz-karbantartás). */
+export interface MonthlyReportUnattributedDto {
+  source: string;
+  totalUsd: number;
+  requestCount: number;
+}
+
+export interface AiSpendingMonthlyReportDto {
+  month: string;
+  totalUsd: number;
+  requestCount: number;
+  attributedUsd: number;
+  unattributedUsd: number;
+  institutions: MonthlyReportInstitutionDto[];
+  individualStudents: MonthlyReportPersonDto[];
+  individualTeachers: MonthlyReportPersonDto[];
+  otherUsers: MonthlyReportPersonDto[];
+  unattributed: MonthlyReportUnattributedDto[];
 }
 
 export interface AiRequestLogDto {

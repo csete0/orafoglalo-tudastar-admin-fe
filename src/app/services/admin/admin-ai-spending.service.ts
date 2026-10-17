@@ -7,6 +7,7 @@ import {
   AiRequestLogPageDto,
   AiSpendingClassTestTeacherDto,
   AiSpendingFullExamUsageDto,
+  AiSpendingMonthlyReportDto,
   AiSpendingOverviewDto,
   AiSpendingTopSpenderDto,
   AutomationStatusDto,
@@ -50,6 +51,21 @@ export class AdminAiSpendingService {
 
   getClassTestUsage(): Observable<AiSpendingClassTestTeacherDto[]> {
     return this.http.get<AiSpendingClassTestTeacherDto[]>(`${this.base}/ai-spending/class-test-usage`);
+  }
+
+  /** Havi riport intézmény / tanár / diák bontásban; `month` = 'YYYY-MM' (magyar naptári hónap). */
+  getMonthlyReport(month: string): Observable<AiSpendingMonthlyReportDto> {
+    return this.http.get<AiSpendingMonthlyReportDto>(`${this.base}/ai-spending/monthly-report`, {
+      params: new HttpParams().set('month', month),
+    });
+  }
+
+  /** Ugyanez CSV-ben (UTF-8 BOM, ';' elválasztó) - az app hitelesített HTTP-kliensén át, blobként. */
+  downloadMonthlyReportCsv(month: string): Observable<Blob> {
+    return this.http.get(`${this.base}/ai-spending/monthly-report.csv`, {
+      params: new HttpParams().set('month', month),
+      responseType: 'blob',
+    });
   }
 
   getRequestLog(filter: AiRequestLogFilter, page: number, pageSize: number): Observable<AiRequestLogPageDto> {

@@ -19,11 +19,12 @@ import {
   sourceColor,
   sourceLabel,
 } from '../../models/ai-spending.model';
+import { AdminAiHaviRiportComponent } from './admin-ai-havi-riport.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
 
-type Tab = 'attekintes' | 'naplo' | 'karbantartas' | 'eredmenyek' | 'automatizmus';
+type Tab = 'attekintes' | 'havi-riport' | 'naplo' | 'karbantartas' | 'eredmenyek' | 'automatizmus';
 
 function extractErrorMessage(err: any, fallback: string): string {
   const body = err?.error;
@@ -60,7 +61,7 @@ const CHART_PAD_BOTTOM = 24;
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-ai-koltes',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, LocalSpinnerComponent],
+  imports: [DatePipe, DecimalPipe, FormsModule, LocalSpinnerComponent, AdminAiHaviRiportComponent],
   template: `
     <div class="max-w-6xl">
       <p class="text-xs font-bold text-text-muted uppercase tracking-wide mb-1">Platform-admin</p>
@@ -281,6 +282,11 @@ const CHART_PAD_BOTTOM = 24;
             </div>
           </div>
         }
+      }
+
+      <!-- ══════════════════ HAVI RIPORT ══════════════════ -->
+      @if (activeTab() === 'havi-riport') {
+        <app-admin-ai-havi-riport />
       }
 
       <!-- ══════════════════ KÉRÉSNAPLÓ ══════════════════ -->
@@ -643,6 +649,7 @@ export class AdminAiKoltesComponent implements OnInit, OnDestroy {
 
   readonly tabs: { id: Tab; label: string }[] = [
     { id: 'attekintes', label: 'Áttekintés' },
+    { id: 'havi-riport', label: 'Havi riport' },
     { id: 'naplo', label: 'Kérésnapló' },
     { id: 'karbantartas', label: 'Kvíz-karbantartás' },
     { id: 'eredmenyek', label: 'Eredmények kezelése' },
