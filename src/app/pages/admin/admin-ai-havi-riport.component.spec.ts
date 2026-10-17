@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { AdminAiHaviRiportComponent, monthKey } from './admin-ai-havi-riport.component';
+import { AdminAiHaviRiportComponent, fmtUsd, monthKey } from './admin-ai-havi-riport.component';
 import { AdminAiSpendingService } from '../../services/admin/admin-ai-spending.service';
 import { AiSpendingMonthlyReportDto, MonthlyReportPersonDto } from '../../models/ai-spending.model';
 
@@ -159,5 +159,11 @@ describe('AdminAiHaviRiportComponent', () => {
     expect(svc.downloadMonthlyReportCsv).toHaveBeenCalledWith(month);
     expect(downloadName).toBe(`ai-koltes-${month}.csv`);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:x');
+  });
+});
+
+describe('fmtUsd (havi riport)', () => {
+  it('kis összegeket is értékes jegyekkel mutat', () => {
+    expect([0, 0.0003, 0.00104, 0.05, 1.256, 0.009].map(fmtUsd)).toEqual(['$0', '$0.0003', '$0.00104', '$0.050', '$1.26', '$0.009']);
   });
 });

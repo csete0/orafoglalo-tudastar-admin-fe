@@ -9,7 +9,7 @@ import {
   sourceLabel,
 } from '../../models/ai-spending.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
-import { fmtUsd } from './admin-gyakorlo-ertekelesek.component';
+import { fmtUsd as fmtUsdBase } from './admin-gyakorlo-ertekelesek.component';
 
 type SortDir = 'desc' | 'asc';
 
@@ -36,6 +36,14 @@ function normalize(s: string): string {
  * (tanárok / diákok), majd az intézmény nélküli diákok, tanárok, egyéb felhasználók és a
  * senkihez nem köthető rendszer-hívások forrásonként; CSV-letöltéssel a számlázáshoz.
  */
+/** Dollár-összeg: 0 → $0; 0,01 alatt 4 értékes jegyig ($0.0003, $0.00104), efölött a pult formája. */
+export function fmtUsd(v: number): string {
+  if (v === 0) return '$0';
+  if (Math.abs(v) >= 0.01) return fmtUsdBase(v);
+  const decimals = Math.min(20, 3 - Math.floor(Math.log10(Math.abs(v))));
+  return '$' + v.toFixed(decimals).replace(/0+$/, '');
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-ai-havi-riport',
