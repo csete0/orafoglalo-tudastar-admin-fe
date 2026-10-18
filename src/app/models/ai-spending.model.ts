@@ -22,6 +22,7 @@ export const AI_SOURCES = [
   { key: 'teacher-ai-code-task', label: 'Tanár: AI programozási feladat', color: 'var(--series-teacher-ai-code-task)' },
   { key: 'teacher-quiz-source', label: 'Tanár: kvíz szövegből', color: 'var(--series-teacher-quiz-source)' },
   { key: 'teacher-test-feedback', label: 'Tanár: dolgozat-visszajelzés', color: 'var(--series-teacher-test-feedback)' },
+  { key: 'teacher-code-comments', label: 'Tanár: kód-megjegyzés javaslat', color: 'var(--series-teacher-code-comments)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
