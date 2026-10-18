@@ -1,6 +1,10 @@
 <h1>Kezdőlap</h1>
 <p class="lead">A hozzáférési modell (F1) kész - a támogatói eszközök innen indulnak majd.</p>
 
+@if (judge0Status(); as status) {
+  <a routerLink="/kodfuttato-terheles" class="judge0-badge" [class]="judge0Classes[status]">Kódfuttató: {{ judge0Labels[status] }}</a>
+}
+
 <ul class="upcoming">
   @for (item of items; track item.label) {
     <li>
