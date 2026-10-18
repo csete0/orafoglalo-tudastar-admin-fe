@@ -44,3 +44,13 @@ a.label:hover {
 .label.disabled {
   color: var(--admin-text-muted);
 }
+
+.judge0-badge {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
