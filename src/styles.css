@@ -31,6 +31,12 @@
   --series-mock-exam: #c2417a;
   --series-code-practice: #4fb3a0;
   --series-exam-rubric-draft: #a0785a;
+  --series-teacher-sql-schema: #e06666;
+  --series-teacher-sql-queries: #6fbf4a;
+  --series-teacher-ai-code-task: #4a8fb8;
+  --series-teacher-quiz-source: #e07bb5;
+  --series-teacher-test-feedback: #c9b458;
+  --series-teacher-code-comments: #8fd4e8;
 }
 
 /* A tanári felületről áthozott oldalak (§3 migráció) a tanári app Tailwind-témájának
