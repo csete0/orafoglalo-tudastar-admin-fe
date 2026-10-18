@@ -39,6 +39,7 @@ export interface Judge0LoadThresholds {
   yellowP95Ms: number;
   redP95Ms: number;
   redBusyRatio: number;
+  redSystemErrorRatio: number;
   minRunsForP95: number;
 }
 

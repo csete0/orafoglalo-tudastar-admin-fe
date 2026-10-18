@@ -8,7 +8,7 @@ const stats = (runs: number, p95Ms: number | null, extra: Partial<Judge0LoadStat
   runs, busy: 0, timeouts: 0, systemErrors: 0, completed: runs, p50Ms: 1000, p95Ms, avgMs: 800, maxMs: 2500,
   avgWaitMs: 100, maxWaitMs: 900, maxQueueDepth: 6, histogram: [runs, 0, 0, 0, 0, 0, 0], ...extra,
 });
-const thresholds = { workHourStart: 7, workHourEnd: 20, yellowP95Ms: 2000, redP95Ms: 3000, redBusyRatio: 0.01, minRunsForP95: 20 };
+const thresholds = { workHourStart: 7, workHourEnd: 20, yellowP95Ms: 2000, redP95Ms: 3000, redBusyRatio: 0.01, redSystemErrorRatio: 0.005, minRunsForP95: 20 };
 
 const report: Judge0LoadReport = {
   days: 7, status: 'yellow', recommendation: 'Érdemes figyelni: csúcsidőben már lassul vagy telítődik a kódfuttató.',

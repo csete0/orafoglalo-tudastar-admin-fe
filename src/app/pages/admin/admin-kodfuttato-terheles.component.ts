@@ -81,8 +81,8 @@ interface Bar {
           }
           <p class="text-xs text-text-muted mt-3">
             Sárga: a futtatások munkaidős ({{ r.thresholds.workHourStart }}–{{ r.thresholds.workHourEnd }} óra) p95-e valamelyik nap
-            {{ fmt(r.thresholds.yellowP95Ms) }} fölött, vagy volt „túlterhelt” elutasítás. Piros: p95 {{ fmt(r.thresholds.redP95Ms) }} fölött,
-            rendszerhiba, vagy az elutasítások aránya {{ r.thresholds.redBusyRatio * 100 }}% fölött. A p95 csak legalább
+            {{ fmt(r.thresholds.yellowP95Ms) }} fölött, vagy volt „túlterhelt” elutasítás vagy rendszerhiba. Piros: p95 {{ fmt(r.thresholds.redP95Ms) }} fölött,
+            az elutasítások aránya {{ r.thresholds.redBusyRatio * 100 }}% vagy a rendszerhibáké {{ r.thresholds.redSystemErrorRatio * 100 }}% fölött. A p95 csak legalább
             {{ r.thresholds.minRunsForP95 }} futásos napon számít; a hisztogramból becsült érték (≤1, 2, 3, 5, 10, 30 s rekeszek).
           </p>
         </div>
