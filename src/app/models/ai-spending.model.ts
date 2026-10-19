@@ -23,6 +23,7 @@ export const AI_SOURCES = [
   { key: 'teacher-quiz-source', label: 'Tanár: kvíz szövegből', color: 'var(--series-teacher-quiz-source)' },
   { key: 'teacher-test-feedback', label: 'Tanár: dolgozat-visszajelzés', color: 'var(--series-teacher-test-feedback)' },
   { key: 'teacher-code-comments', label: 'Tanár: kód-megjegyzés javaslat', color: 'var(--series-teacher-code-comments)' },
+  { key: 'team-repo-review', label: 'Csapat: MI-repóátnézés', color: 'var(--series-team-repo-review)' },
   { key: 'teacher-office-task', label: 'Tanár: irodai feladat megoldásból', color: 'var(--series-teacher-office-task)' },
 ] as const;
 

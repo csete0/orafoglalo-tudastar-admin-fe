@@ -4,6 +4,7 @@ describe('AI_SOURCES', () => {
   it('a tanári kód-megjegyzés javaslat forrásnak saját címkéje és színe van', () => {
     expect(sourceLabel('teacher-code-comments')).toBe('Tanár: kód-megjegyzés javaslat');
     expect(sourceColor('teacher-code-comments')).toBe('var(--series-teacher-code-comments)');
+    expect(sourceLabel('team-repo-review')).toBe('Csapat: MI-repóátnézés');
   });
 
   it('minden forrás kulcsa és színe egyedi', () => {
