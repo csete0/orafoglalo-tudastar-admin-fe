@@ -129,7 +129,7 @@ export class AdminGitComponent implements OnInit {
     }
     if (!(await this.confirm.ask({
       title: 'Tároló zárolása',
-      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) zárolódik: a diák nem pusholhat bele, nem mentheti és nem törölheti. Ok: „${reason}”.`,
+      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) zárolódik: a diák nem klónozhatja és nem fetch-elheti, nem pusholhat bele, nem mentheti és nem törölheti. Ok: „${reason}”.`,
       confirmLabel: 'Zárolás',
       danger: true,
     }))) return;
