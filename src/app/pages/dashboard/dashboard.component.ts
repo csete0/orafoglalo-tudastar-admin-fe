@@ -39,6 +39,7 @@ export class DashboardComponent {
     { label: 'Kuponkódok (általános)', note: 'migrálva', route: '/kuponok' },
     { label: 'AI-költés pult', note: 'migrálva', route: '/ai-koltes' },
     { label: 'Projektműhely', note: 'haladás, tölcsér, AI- és Judge0-költés', route: '/projektmuhely' },
+    { label: 'Git', note: 'kvóták, tárolók, zárolás', route: '/git' },
     { label: 'Növekedés', note: 'kohorszok, aktiválódás, megmaradás, lemondási okok', route: '/novekedes' },
     { label: 'Érettségi-eredmények', note: 'valódi eredmények, előrejelzés-pontosság, idézetek', route: '/erettsegi-eredmenyek' },
     { label: 'Szempontlisták', note: 'a hivatalos feladatok pontozási szempontjai, jóváhagyás', route: '/szempontlistak' },
