@@ -110,7 +110,7 @@ describe('AdminProjektmuhelyComponent', () => {
     expect(el.textContent).toContain('A technikumi modul nincs bekapcsolva.');
     api.getTechnikum.mockReturnValueOnce(throwError(() => new Error('x')));
     await c.setDays(14);
-    expect(c.error()).toBe('A technikumi statisztikát nem sikerült betölteni.');
+    expect(c.error()).toBe('A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
   });
   it('technikum: gyors nap-váltásnál a később érkező régi válasz nem írja felül az újat', async () => {
     const { c, api } = await setup();

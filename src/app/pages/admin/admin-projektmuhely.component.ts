@@ -397,7 +397,7 @@ export class AdminProjektmuhelyComponent implements OnInit {
     } catch (err: any) {
       if (seq !== this.technikumSeq) return;
       const message = err?.error?.errorMessage;
-      this.error.set(typeof message === 'string' && message.trim() ? message : 'A technikumi statisztikát nem sikerült betölteni.');
+      this.error.set(typeof message === 'string' && message.trim() ? message : 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
     } finally {
       if (seq === this.technikumSeq) this.technikumLoading.set(false);
     }
