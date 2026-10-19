@@ -175,7 +175,7 @@ const PAD_BOTTOM = 22;
               <app-local-spinner />
             } @else if (technikum(); as t) {
               <p class="text-xs text-text-muted mb-4 max-w-2xl">
-                Technikumi projektek részenként, a bírált eredmények alapján ({{ t.days }} nap; a függő és a rendszerhibás bírálat nem számít).
+                A Technikumi vizsga projektjei részenként, a bírált eredmények alapján ({{ t.days }} nap; a függő és a rendszerhibás bírálat nem számít).
                 Bukás: 40% alatti eredmény (a vizsga megfelelt-határa). Vizsga: önálló próbavizsga és dolgozat; gyakorlás: gyakorló ellenőrzés.
               </p>
               @for (p of t.projects; track p.slug) {
@@ -215,7 +215,7 @@ const PAD_BOTTOM = 22;
                   </div>
                 </div>
               } @empty {
-                <p class="text-sm text-text-muted">Még nincs technikumi projekt.</p>
+                <p class="text-sm text-text-muted">Még nincs technikumi vizsgaprojekt.</p>
               }
             }
           }
@@ -293,7 +293,7 @@ export class AdminProjektmuhelyComponent implements OnInit {
     { id: 'attekintes', label: 'Áttekintés' },
     { id: 'tolcser', label: 'Tölcsér' },
     { id: 'koltseg', label: 'Költség' },
-    { id: 'technikum', label: 'Technikum' },
+    { id: 'technikum', label: 'Fejlesztőműhely' },
   ];
   readonly dayOptions = [7, 30, 90];
   readonly chartWidth = CHART_WIDTH;
@@ -397,7 +397,7 @@ export class AdminProjektmuhelyComponent implements OnInit {
     } catch (err: any) {
       if (seq !== this.technikumSeq) return;
       const message = err?.error?.errorMessage;
-      this.error.set(typeof message === 'string' && message.trim() ? message : 'A technikumi statisztikát nem sikerült betölteni.');
+      this.error.set(typeof message === 'string' && message.trim() ? message : 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
     } finally {
       if (seq === this.technikumSeq) this.technikumLoading.set(false);
     }

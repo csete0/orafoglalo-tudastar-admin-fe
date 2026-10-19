@@ -52,13 +52,7 @@ export interface SchoolAdminDto {
   publicApprovedAt: string | null;
   publicApprovedByEmail: string | null;
   mockExamRegistrationCount: number;
-  /** A technikumi modul láthatóságához; null = nincs megadva. */
-  schoolType: SchoolType | null;
-  /** Az admin rögzítette: a tanár nem módosíthatja. */
-  schoolTypeSetByAdmin: boolean;
 }
-
-export type SchoolType = 'gimnazium' | 'technikum';
 
 export interface SchoolMergeResultDto {
   movedGroups: number;

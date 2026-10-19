@@ -22,8 +22,6 @@ function makeSchool(overrides: Partial<SchoolAdminDto> = {}): SchoolAdminDto {
     publicApprovedAt: null,
     publicApprovedByEmail: null,
     mockExamRegistrationCount: 0,
-    schoolType: null,
-    schoolTypeSetByAdmin: false,
     ...overrides,
   };
 }
@@ -59,7 +57,6 @@ describe('AdminIntezmenyekComponent', () => {
     load: ReturnType<typeof vi.fn>;
     merge: ReturnType<typeof vi.fn>;
     setPublicApproval: ReturnType<typeof vi.fn>;
-    setType: ReturnType<typeof vi.fn>;
   };
   let licenseStoreMock: {
     licenses: ReturnType<typeof signal<InstitutionalLicenseDto[]>>;
@@ -94,7 +91,6 @@ describe('AdminIntezmenyekComponent', () => {
       load: vi.fn(),
       merge: vi.fn(),
       setPublicApproval: vi.fn(),
-      setType: vi.fn(),
     };
     licenseStoreMock = {
       licenses: signal(licenses),
@@ -1097,38 +1093,12 @@ describe('AdminIntezmenyekComponent', () => {
     });
   });
 
-  describe('iskolatípus felülírása', () => {
-    it('a tanár által beállított típus látszik; a másikra váltás megerősítés után rögzít', async () => {
-      const school = makeSchool({ id: 1, name: 'Petőfi', schoolType: 'gimnazium' });
-      configure([school]);
-      const fixture = TestBed.createComponent(AdminIntezmenyekComponent);
-      fixture.detectChanges();
-      const row: HTMLElement = fixture.nativeElement.querySelector('[data-testid="school-type-1"]');
-      expect(row.textContent).toContain('a tanárok állították be');
-      const buttons = [...row.querySelectorAll('button')];
-      expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
-
-      buttons[1].click();
-      await fixture.whenStable();
-      expect(confirmServiceMock.ask).toHaveBeenCalledWith(expect.objectContaining({ confirmLabel: 'Rögzítés' }));
-      expect(storeMock.setType).toHaveBeenCalledWith(1, 'technikum');
-    });
-
-    it('az admin által rögzített, azonos típusra nem kérdez; elutasításnál nem hív', async () => {
-      const locked = makeSchool({ id: 2, schoolType: 'technikum', schoolTypeSetByAdmin: true });
-      configure([locked]);
-      const fixture = TestBed.createComponent(AdminIntezmenyekComponent);
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('[data-testid="school-type-2"]').textContent).toContain('admin rögzítette');
-      const component = fixture.componentInstance;
-
-      await component.confirmSchoolType(locked, 'technikum');
-      expect(confirmServiceMock.ask).not.toHaveBeenCalled();
-
-      confirmServiceMock.ask.mockResolvedValue(false);
-      await component.confirmSchoolType(locked, 'gimnazium');
-      expect(confirmServiceMock.ask).toHaveBeenCalled();
-      expect(storeMock.setType).not.toHaveBeenCalled();
-    });
+  it('nincs iskolatípus-felülírás az intézménylistán', () => {
+    configure();
+    const fixture = TestBed.createComponent(AdminIntezmenyekComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('[data-testid^="school-type-"]')).toBeNull();
+    expect(el.textContent).not.toContain('Iskolatípus');
   });
 });

@@ -82,6 +82,9 @@ describe('AdminProjektmuhelyComponent', () => {
 
   it('technikum: a fülre lépve tölt; részenként átlag és bukási arány vizsgára és gyakorlásra; időszakváltáskor újratölt', async () => {
     const { c, el, fixture, api } = await setup();
+    const tabLabels = [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="tab"], .tab-btn')].map((b) => b.textContent?.trim());
+    expect(tabLabels).toContain('Fejlesztőműhely');
+    expect(tabLabels).not.toContain('Technikum');
     expect(api.getTechnikum).not.toHaveBeenCalled();
     await c.selectTab('technikum');
     fixture.detectChanges();
@@ -107,7 +110,7 @@ describe('AdminProjektmuhelyComponent', () => {
     expect(el.textContent).toContain('A technikumi modul nincs bekapcsolva.');
     api.getTechnikum.mockReturnValueOnce(throwError(() => new Error('x')));
     await c.setDays(14);
-    expect(c.error()).toBe('A technikumi statisztikát nem sikerült betölteni.');
+    expect(c.error()).toBe('A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
   });
   it('technikum: gyors nap-váltásnál a később érkező régi válasz nem írja felül az újat', async () => {
     const { c, api } = await setup();
