@@ -2,7 +2,13 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ProjectAdminCosts, ProjectAdminFunnel, ProjectAdminOverview, ProjectAdminUserProject } from '../../models/projektmuhely.model';
+import {
+  ProjectAdminCosts,
+  ProjectAdminFunnel,
+  ProjectAdminOverview,
+  ProjectAdminTechnikumStats,
+  ProjectAdminUserProject,
+} from '../../models/projektmuhely.model';
 
 /** Az admin Projektműhely-oldal (haladás, tölcsér, költség) - csak olvasás. */
 @Injectable({ providedIn: 'root' })
@@ -16,6 +22,10 @@ export class AdminProjektmuhelyService {
 
   getCosts(days = 30): Observable<ProjectAdminCosts> {
     return this.http.get<ProjectAdminCosts>(`${this.base}/costs`, { params: new HttpParams().set('days', days) });
+  }
+
+  getTechnikum(days = 30): Observable<ProjectAdminTechnikumStats> {
+    return this.http.get<ProjectAdminTechnikumStats>(`${this.base}/technikum`, { params: new HttpParams().set('days', days) });
   }
 
   getFunnel(slug: string): Observable<ProjectAdminFunnel> {

@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, take } from 'rxjs/operators';
 import { AdminSchoolService } from './admin-school.service';
-import { SchoolAdminDto, SchoolMergeResultDto } from '../../models/teacher-moderation.model';
+import { SchoolAdminDto, SchoolMergeResultDto, SchoolType } from '../../models/teacher-moderation.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminSchoolStore {
@@ -88,6 +88,25 @@ export class AdminSchoolStore {
         next: () => this.load(),
         error: (err) => {
           this._error.set(err.error?.errorMessage ?? 'A nyilvánosság módosítása sikertelen.');
+          this._loading.set(false);
+        },
+      });
+  }
+
+  /** Iskolatípus felülírása (admin-rögzítéssel); sikerre a lista újratöltődik (merge() mintája). */
+  setType(schoolId: number, type: SchoolType): void {
+    if (this._loading()) return;
+
+    this._loading.set(true);
+    this._error.set(null);
+
+    this.service
+      .setType(schoolId, type)
+      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.load(),
+        error: (err) => {
+          this._error.set(err.error?.errorMessage ?? 'Az iskolatípus módosítása sikertelen.');
           this._loading.set(false);
         },
       });

@@ -5,6 +5,7 @@ export const RUNTIME_LABELS: Record<string, string> = {
   'browser-js': 'JavaScript',
   'judge0-csharp': 'C#',
   'judge0-java': 'Java',
+  'judge0-aspnet': 'C# (ASP.NET Core)',
 };
 
 export interface ProjectAdminProjectRow {
@@ -98,3 +99,44 @@ export interface ProjectAdminUserProject {
   completedAt: string | null;
   lastActivityAt: string | null;
 }
+
+/** Technikum: részenkénti átlag és bukási arány (BE: ProjectAdminStatsService.GetTechnikumStatsAsync). */
+export interface ProjectAdminTechnikumPartStat {
+  results: number;
+  students: number;
+  /** Átlagos pontarány %-ban; null, ha nincs eredmény. */
+  avgPercent: number | null;
+  /** A 40% alatti eredmények aránya %-ban; null, ha nincs eredmény. */
+  failRatePercent: number | null;
+}
+
+export interface ProjectAdminTechnikumPart {
+  partKey: string;
+  maxPoints: number;
+  /** Vizsga-munkamenet (önálló próba vagy dolgozat). */
+  exam: ProjectAdminTechnikumPartStat;
+  /** Gyakorló ellenőrzés. */
+  practice: ProjectAdminTechnikumPartStat;
+}
+
+export interface ProjectAdminTechnikumProject {
+  slug: string;
+  title: string;
+  kind: 'exam' | 'practice';
+  isPublished: boolean;
+  parts: ProjectAdminTechnikumPart[];
+}
+
+export interface ProjectAdminTechnikumStats {
+  days: number;
+  projects: ProjectAdminTechnikumProject[];
+}
+
+/** A vizsgarészek neve (a diák- és tanári app felirataival egyezően). */
+export const EXAM_PART_LABELS: Record<string, string> = {
+  console: 'Konzolos alkalmazás',
+  gui: 'Grafikus alkalmazás',
+  web: 'Weboldal (frontend)',
+  api: 'Backend (REST API)',
+  client: 'Kliens alkalmazás',
+};
