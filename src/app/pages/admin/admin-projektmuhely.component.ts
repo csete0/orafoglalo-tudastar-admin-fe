@@ -383,16 +383,23 @@ export class AdminProjektmuhelyComponent implements OnInit {
     if (tab === 'technikum' && this.technikum()?.days !== this.days()) await this.loadTechnikum();
   }
 
+  /** Sorszám-őr: gyors nap-váltásnál csak a legutolsó kérés válasza (és hibája) érvényes, a korábbi, később érkező nem írja felül. */
+  private technikumSeq = 0;
+  private loadSeq = 0;
+
   private async loadTechnikum(): Promise<void> {
+    const seq = ++this.technikumSeq;
     this.error.set(null);
     this.technikumLoading.set(true);
     try {
-      this.technikum.set(await firstValueFrom(this.api.getTechnikum(this.days())));
+      const stats = await firstValueFrom(this.api.getTechnikum(this.days()));
+      if (seq === this.technikumSeq) this.technikum.set(stats);
     } catch (err: any) {
+      if (seq !== this.technikumSeq) return;
       const message = err?.error?.errorMessage;
       this.error.set(typeof message === 'string' && message.trim() ? message : 'A technikumi statisztikát nem sikerült betölteni.');
     } finally {
-      this.technikumLoading.set(false);
+      if (seq === this.technikumSeq) this.technikumLoading.set(false);
     }
   }
 
@@ -416,6 +423,7 @@ export class AdminProjektmuhelyComponent implements OnInit {
   }
 
   private async load(): Promise<void> {
+    const seq = ++this.loadSeq;
     this.loading.set(true);
     this.error.set(null);
     try {
@@ -423,6 +431,7 @@ export class AdminProjektmuhelyComponent implements OnInit {
         firstValueFrom(this.api.getOverview(this.days())),
         firstValueFrom(this.api.getCosts(this.days())),
       ]);
+      if (seq !== this.loadSeq) return;
       this.overview.set(overview);
       this.costs.set(costs);
       const first = overview.projects[0]?.slug;
@@ -431,9 +440,9 @@ export class AdminProjektmuhelyComponent implements OnInit {
         this.funnel.set(await firstValueFrom(this.api.getFunnel(first)));
       }
     } catch {
-      this.error.set('A Projektműhely adatait nem sikerült betölteni.');
+      if (seq === this.loadSeq) this.error.set('A Projektműhely adatait nem sikerült betölteni.');
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 

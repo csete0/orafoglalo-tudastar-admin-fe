@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import { AdminProjektmuhelyComponent } from './admin-projektmuhely.component';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
 import { AI_SOURCES } from '../../models/ai-spending.model';
@@ -108,5 +108,19 @@ describe('AdminProjektmuhelyComponent', () => {
     api.getTechnikum.mockReturnValueOnce(throwError(() => new Error('x')));
     await c.setDays(14);
     expect(c.error()).toBe('A technikumi statisztikát nem sikerült betölteni.');
+  });
+  it('technikum: gyors nap-váltásnál a később érkező régi válasz nem írja felül az újat', async () => {
+    const { c, api } = await setup();
+    await c.selectTab('technikum');
+    const slow = new Subject<ProjectAdminTechnikumStats>();
+    api.getTechnikum.mockReturnValueOnce(slow);
+    const first = c.setDays(7);
+    await c.setDays(90);
+    expect(c.technikum()?.days).toBe(90);
+    slow.next({ ...technikum, days: 7 });
+    slow.complete();
+    await first;
+    expect(c.technikum()?.days).toBe(90);
+    expect(c.technikumLoading()).toBe(false);
   });
 });
