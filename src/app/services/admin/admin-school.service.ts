@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SchoolAdminDto, SchoolMergeResultDto, SchoolType } from '../../models/teacher-moderation.model';
+import { SchoolAdminDto, SchoolMergeResultDto } from '../../models/teacher-moderation.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminSchoolService {
@@ -18,11 +18,6 @@ export class AdminSchoolService {
       sourceSchoolId,
       targetSchoolId,
     });
-  }
-
-  /** Iskolatípus felülírása: rögzíti, a tanár utána nem módosíthatja. */
-  setType(schoolId: number, type: SchoolType): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/schools/${schoolId}/type`, { type });
   }
 
   setPublicApproval(schoolId: number, approved: boolean): Observable<void> {

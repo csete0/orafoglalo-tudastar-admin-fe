@@ -7,7 +7,7 @@ import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { ToastService } from '../../shared/toast/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
-import { SchoolAdminDto, SchoolType } from '../../models/teacher-moderation.model';
+import { SchoolAdminDto } from '../../models/teacher-moderation.model';
 import {
   InstitutionalLicenseDto,
   InstitutionalLicenseUsageDayDto,
@@ -140,22 +140,6 @@ import {
                   }
                 }
                 <span class="text-text-muted">· {{ school.mockExamRegistrationCount }} próbaérettségi-jelentkezés</span>
-              </div>
-
-              <!-- Iskolatípus (technikumi modul): az admin felülírása rögzíti, a tanár utána nem módosíthatja. -->
-              <div class="mt-2 flex items-center gap-2 flex-wrap text-xs" role="group" aria-label="Iskolatípus"
-                   [attr.data-testid]="'school-type-' + school.id">
-                <span class="text-text-muted">Iskolatípus:</span>
-                @for (t of schoolTypes; track t.value) {
-                  <button type="button" [class]="school.schoolType === t.value ? 'btn btn-primary !px-2 !py-0.5 !text-xs' : 'btn btn-ghost !px-2 !py-0.5 !text-xs'"
-                          [attr.aria-pressed]="school.schoolType === t.value" [disabled]="store.loading()"
-                          (click)="confirmSchoolType(school, t.value)">{{ t.label }}</button>
-                }
-                @if (school.schoolTypeSetByAdmin) {
-                  <span class="badge badge-neutral">admin rögzítette</span>
-                } @else {
-                  <span class="text-text-muted">{{ school.schoolType ? 'a tanárok állították be' : 'nincs megadva' }}</span>
-                }
               </div>
 
               <!-- Licenc-keretek: az intézményhez tartoznak, ezért itt jelennek meg,
@@ -439,10 +423,6 @@ export class AdminIntezmenyekComponent {
   sourceId: number | null = null;
   targetId: number | null = null;
 
-  readonly schoolTypes: { value: SchoolType; label: string }[] = [
-    { value: 'gimnazium', label: 'Gimnázium' },
-    { value: 'technikum', label: 'Technikum' },
-  ];
   /** Licenc nélküli, még nem jóváhagyott intézmények - ezek nem látszanak a próbaérettségi iskolakeresőben. */
   readonly onlyPendingPublic = signal(false);
   readonly pendingPublicCount = computed(() => this.store.schools().filter(isPendingPublic).length);
@@ -741,23 +721,6 @@ export class AdminIntezmenyekComponent {
     if (!ok) return;
 
     this.store.setPublicApproval(school.id, approve);
-  }
-
-  async confirmSchoolType(school: SchoolAdminDto, type: SchoolType): Promise<void> {
-    if (this.store.loading() || (school.schoolTypeSetByAdmin && school.schoolType === type)) return;
-
-    const label = this.schoolTypes.find((t) => t.value === type)!.label.toLowerCase();
-    const ok = await this.confirmService.ask({
-      message:
-        `A(z) „${this.schoolLabel(school)}” iskolatípusa ${label} lesz, és az intézmény tanárai ezután nem módosíthatják. ` +
-        (type === 'technikum'
-          ? 'A tanárok kiadhatják a technikumi projekteket, a csoportok diákjai elérik a technikumi modult.'
-          : 'A technikumi modul az intézmény csoportjainak diákjai számára nem lesz elérhető (csak saját profil-beállítással).'),
-      confirmLabel: 'Rögzítés',
-    });
-    if (!ok) return;
-
-    this.store.setType(school.id, type);
   }
 
   async confirmMerge(): Promise<void> {
