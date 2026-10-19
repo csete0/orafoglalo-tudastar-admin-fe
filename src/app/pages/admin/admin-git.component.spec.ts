@@ -48,6 +48,60 @@ describe('AdminGitComponent', () => {
     expect(api.searchRepos).toHaveBeenCalledTimes(3);
   });
 
+  it('zárolás: ok nélkül nem megy (a gomb tiltva, hívás nincs); megerősítés a tárolóval és az okkal; elutasításnál nem zárol', async () => {
+    const { fixture, c, el, api, confirm } = setup();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const lockBtn = () => [...el.querySelectorAll<HTMLButtonElement>('[data-testid="git-repo-7"] button')].find((b) => b.textContent!.trim() === 'Zárolás')!;
+    expect(lockBtn().disabled).toBe(true);
+    await c.lock(repo);
+    expect(confirm.ask).not.toHaveBeenCalled();
+    expect(api.lock).not.toHaveBeenCalled();
+    expect(c.error()).toContain('okát');
+
+    c.lockReason.set('  spam  ');
+    fixture.detectChanges();
+    expect(lockBtn().disabled).toBe(false);
+    confirm.ask.mockResolvedValueOnce(false);
+    await c.lock(repo);
+    expect(confirm.ask).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringMatching(/u12-p-bufe.*diak@x\.hu.*„spam”/) }));
+    expect(api.lock).not.toHaveBeenCalled();
+    await c.lock(repo);
+    expect(api.lock).toHaveBeenCalledWith(7, 'spam');
+    expect(c.lockReason()).toBe('');
+  });
+
+  it('feloldás megerősítés után; elutasításnál nem old fel', async () => {
+    const { fixture, c, api, confirm } = setup();
+    await fixture.whenStable();
+    const locked = { ...repo, locked: true, lockReason: 'spam' };
+    confirm.ask.mockResolvedValueOnce(false);
+    await c.unlock(locked);
+    expect(api.unlock).not.toHaveBeenCalled();
+    await c.unlock(locked);
+    expect(confirm.ask).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringContaining('spam') }));
+    expect(api.unlock).toHaveBeenCalledWith(7);
+  });
+
+  it('érvénytelen kvótánál a Mentés tiltva; a kérés updatedAt nélkül megy', async () => {
+    const { fixture, c, el, api } = setup();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const input = el.querySelector<HTMLInputElement>('input[name="snapshotMaxMb"]')!;
+    input.value = '51';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector<HTMLButtonElement>('[data-testid="git-quota-save"]')!.disabled).toBe(true);
+    input.value = '20';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(el.querySelector<HTMLButtonElement>('[data-testid="git-quota-save"]')!.disabled).toBe(false);
+    await c.saveQuota();
+    expect(api.updateQuota.mock.calls[0][0]).not.toHaveProperty('updatedAt');
+  });
+
   it('elutasított megerősítésnél nem töröl', async () => {
     const { fixture, c, api, confirm } = setup();
     await fixture.whenStable();

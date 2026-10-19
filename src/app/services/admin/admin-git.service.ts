@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { GitAdminRepo, GitQuota } from '../../models/git.model';
+import { GitAdminRepo, GitQuota, GitQuotaUpdate } from '../../models/git.model';
 
 /** Git-admin: kvóták, tárolók, zár, törlés (BE: AdminGitController). */
 @Injectable({ providedIn: 'root' })
@@ -14,8 +14,8 @@ export class AdminGitService {
     return this.http.get<GitQuota>(`${this.base}/quota`);
   }
 
-  updateQuota(quota: Omit<GitQuota, 'updatedAt'>): Observable<GitQuota> {
-    return this.http.put<GitQuota>(`${this.base}/quota`, { ...quota, updatedAt: new Date().toISOString() });
+  updateQuota(quota: GitQuotaUpdate): Observable<GitQuota> {
+    return this.http.put<GitQuota>(`${this.base}/quota`, quota);
   }
 
   searchRepos(q: string): Observable<GitAdminRepo[]> {

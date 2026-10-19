@@ -23,7 +23,7 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
 
       @if (error()) { <p class="text-danger text-sm mb-4" role="alert">{{ error() }}</p> }
 
-      <form class="card p-5 mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4" (ngSubmit)="saveQuota()" data-testid="git-quota">
+      <form class="card p-5 mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4" #quotaForm="ngForm" (ngSubmit)="quotaForm.valid && saveQuota()" data-testid="git-quota">
         <h2 class="col-span-full font-bold">Kvóták</h2>
         <label class="text-sm min-w-0">Tároló mérete (MB)
           <input class="input w-full" type="number" min="1" max="500" required name="repoMaxMb" [(ngModel)]="form.repoMaxMb" /></label>
@@ -39,7 +39,8 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
           <input class="input w-full" type="number" min="1" max="50" required name="snapshotMaxMb" [(ngModel)]="form.snapshotMaxMb" /></label>
         <p class="col-span-full text-xs text-text-muted">A saját tárolók számába csak a projekt-tárolók számítanak, a gyakorlók nem.</p>
         <div class="col-span-full flex flex-wrap items-center gap-3">
-          <button class="btn btn-primary" type="submit" [disabled]="busy()">Mentés</button>
+          <button class="btn btn-primary" type="submit" data-testid="git-quota-save" [disabled]="busy() || quotaForm.invalid">Mentés</button>
+          @if (quotaForm.invalid) { <span class="text-xs text-danger">Minden mező kitöltendő, a megadott határokon belül.</span> }
           @if (quota(); as q) { <span class="text-xs text-text-muted">Utoljára módosítva: {{ q.updatedAt | date: 'yyyy.MM.dd. HH:mm' }}</span> }
         </div>
       </form>
@@ -51,7 +52,7 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
                  (keyup.enter)="search()" aria-label="Keresés e-mail címre vagy tárolónévre" />
           <button class="btn btn-ghost" type="button" (click)="search()" [disabled]="busy()">Keresés</button>
         </div>
-        <label class="text-sm block">Zárolás oka (a zároláskor a tárolóhoz mentődik)
+        <label class="text-sm block">Zárolás oka (kötelező; a tárolóhoz mentődik, a diák is látja)
           <input class="input w-full" type="text" maxlength="200" placeholder="pl. nem odaillő tartalom" [ngModel]="lockReason()"
                  (ngModelChange)="lockReason.set($event)" /></label>
         <ul class="divide-y divide-border-default">
@@ -66,7 +67,8 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
                 @if (r.locked) {
                   <button class="btn btn-ghost !py-0.5" type="button" [disabled]="busy()" (click)="unlock(r)" [attr.aria-label]="'Feloldás: ' + r.name">Feloldás</button>
                 } @else {
-                  <button class="btn btn-ghost !py-0.5" type="button" [disabled]="busy()" (click)="lock(r)" [attr.aria-label]="'Zárolás: ' + r.name">Zárolás</button>
+                  <button class="btn btn-ghost !py-0.5" type="button" [disabled]="busy() || !lockReason().trim()" (click)="lock(r)"
+                          [attr.aria-label]="'Zárolás: ' + r.name" [title]="lockReason().trim() ? 'Zárolás' : 'Előbb add meg a zárolás okát'">Zárolás</button>
                 }
                 <button class="btn btn-danger !py-0.5" type="button" [disabled]="busy()" (click)="remove(r)" [attr.aria-label]="'Törlés: ' + r.name">Törlés</button>
               </span>
@@ -120,12 +122,28 @@ export class AdminGitComponent implements OnInit {
   }
 
   async lock(r: GitAdminRepo): Promise<void> {
-    if (!(await this.run(() => firstValueFrom(this.api.lock(r.id, this.lockReason().trim()))))) return;
+    const reason = this.lockReason().trim();
+    if (!reason) {
+      this.error.set('A zároláshoz add meg az okát.');
+      return;
+    }
+    if (!(await this.confirm.ask({
+      title: 'Tároló zárolása',
+      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) zárolódik: a diák nem pusholhat bele, nem mentheti és nem törölheti. Ok: „${reason}”.`,
+      confirmLabel: 'Zárolás',
+      danger: true,
+    }))) return;
+    if (!(await this.run(() => firstValueFrom(this.api.lock(r.id, reason))))) return;
     this.lockReason.set('');
     await this.search();
   }
 
   async unlock(r: GitAdminRepo): Promise<void> {
+    if (!(await this.confirm.ask({
+      title: 'Zárolás feloldása',
+      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) zárolása feloldódik${r.lockReason ? ` (ok volt: „${r.lockReason}”)` : ''}.`,
+      confirmLabel: 'Feloldás',
+    }))) return;
     if (await this.run(() => firstValueFrom(this.api.unlock(r.id)))) await this.search();
   }
 

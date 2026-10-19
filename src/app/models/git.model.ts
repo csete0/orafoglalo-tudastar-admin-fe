@@ -9,6 +9,9 @@ export interface GitQuota {
   updatedAt: string;
 }
 
+/** A kvóta-mentés kérése (a módosítás idejét a szerver állítja). */
+export type GitQuotaUpdate = Omit<GitQuota, 'updatedAt'>;
+
 export type GitRepoPurpose = 'project' | 'exercise' | 'gate';
 
 export interface GitAdminRepo {
