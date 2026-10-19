@@ -92,6 +92,11 @@ export const routes: Routes = [
       import('./pages/admin/admin-projektmuhely.component').then((m) => m.AdminProjektmuhelyComponent),
   },
   {
+    path: 'git',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/admin/admin-git.component').then((m) => m.AdminGitComponent),
+  },
+  {
     path: 'kodfuttato-terheles',
     canActivate: [authGuard],
     loadComponent: () =>
