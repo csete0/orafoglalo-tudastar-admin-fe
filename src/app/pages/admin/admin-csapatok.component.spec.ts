@@ -23,11 +23,11 @@ describe('AdminCsapatokComponent', () => {
     return { fixture, c: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, api, confirm };
   }
 
-  it('betöltéskor a hibás tükrözések listája; a sorban a GitHub-repó és az állapot magyarul', async () => {
+  it('betöltéskor az összes csapat (a hibaszűrő alapból ki); a sorban a GitHub-repó és az állapot magyarul', async () => {
     const { fixture, el, api } = setup();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(api.search).toHaveBeenCalledWith('', true);
+    expect(api.search).toHaveBeenCalledWith('', false);
     expect(el.textContent).toContain('diak/bufe');
     expect(el.textContent).toContain('eltért a GitHubon');
   });

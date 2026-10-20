@@ -71,7 +71,7 @@ export class AdminCsapatokComponent implements OnInit {
   readonly rows = signal<AdminTeamRow[]>([]);
   readonly detail = signal<AdminTeamDetail | null>(null);
   readonly query = signal('');
-  readonly problems = signal(true);
+  readonly problems = signal(false);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
 
