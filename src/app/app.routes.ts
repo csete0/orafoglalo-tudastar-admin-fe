@@ -97,6 +97,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin/admin-git.component').then((m) => m.AdminGitComponent),
   },
   {
+    path: 'csapatok',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/admin/admin-csapatok.component').then((m) => m.AdminCsapatokComponent),
+  },
+  {
     path: 'kodfuttato-terheles',
     canActivate: [authGuard],
     loadComponent: () =>

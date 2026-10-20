@@ -37,6 +37,8 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
           <input class="input w-full" type="number" min="1" max="600" required name="clonesPerMinute" [(ngModel)]="form.clonesPerMinute" /></label>
         <label class="text-sm min-w-0">.git-mentés (MB)
           <input class="input w-full" type="number" min="1" max="50" required name="snapshotMaxMb" [(ngModel)]="form.snapshotMaxMb" /></label>
+        <label class="text-sm min-w-0">Csapattároló mérete (MB)
+          <input class="input w-full" type="number" min="1" max="500" required name="teamRepoMaxMb" [(ngModel)]="form.teamRepoMaxMb" /></label>
         <p class="col-span-full text-xs text-text-muted">A saját tárolók számába csak a projekt-tárolók számítanak, a gyakorlók nem.</p>
         <div class="col-span-full flex flex-wrap items-center gap-3">
           <button class="btn btn-primary" type="submit" data-testid="git-quota-save" [disabled]="busy() || quotaForm.invalid">Mentés</button>
@@ -59,7 +61,7 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
           @for (r of repos(); track r.id) {
             <li class="py-2 flex flex-wrap items-center gap-2 text-sm" [attr.data-testid]="'git-repo-' + r.id">
               <span class="font-mono break-all">{{ r.name }}</span>
-              <span class="text-text-muted break-all">{{ r.ownerEmail }} · {{ (r.sizeKb / 1024).toFixed(1) }} MB · {{ purposeLabel(r) }}
+              <span class="text-text-muted break-all">{{ owner(r) }} · {{ (r.sizeKb / 1024).toFixed(1) }} MB · {{ purposeLabel(r) }}
                 · {{ r.lastPushAt ? 'utolsó push: ' + (r.lastPushAt | date: 'yyyy.MM.dd. HH:mm') : 'még nem pusholtak' }}</span>
               @if (r.locked) { <span class="badge badge-danger">zárolva{{ r.lockReason ? ': ' + r.lockReason : '' }}</span> }
               @if (r.overQuota) { <span class="badge badge-warning">kvóta felett</span> }
@@ -91,16 +93,21 @@ export class AdminGitComponent implements OnInit {
   readonly lockReason = signal('');
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
-  form = { repoMaxMb: 50, reposPerUser: 20, fileMaxMb: 5, pushesPerMinute: 6, clonesPerMinute: 20, snapshotMaxMb: 10 };
+  form = { repoMaxMb: 50, reposPerUser: 20, fileMaxMb: 5, pushesPerMinute: 6, clonesPerMinute: 20, snapshotMaxMb: 10, teamRepoMaxMb: 50 };
 
   async ngOnInit(): Promise<void> {
     await this.run(async () => {
       const q = await firstValueFrom(this.api.getQuota());
       this.form = { repoMaxMb: q.repoMaxMb, reposPerUser: q.reposPerUser, fileMaxMb: q.fileMaxMb, pushesPerMinute: q.pushesPerMinute,
-        clonesPerMinute: q.clonesPerMinute, snapshotMaxMb: q.snapshotMaxMb };
+        clonesPerMinute: q.clonesPerMinute, snapshotMaxMb: q.snapshotMaxMb, teamRepoMaxMb: q.teamRepoMaxMb };
       this.quota.set(q);
     });
     await this.search();
+  }
+
+  /** A tároló gazdája: a diák e-mailje, csapattárolónál a csapat azonosítója. */
+  owner(r: GitAdminRepo): string {
+    return r.ownerEmail ?? (r.ownerTeamId !== null ? `csapat #${r.ownerTeamId}` : '–');
   }
 
   purposeLabel(r: GitAdminRepo): string {
@@ -129,7 +136,7 @@ export class AdminGitComponent implements OnInit {
     }
     if (!(await this.confirm.ask({
       title: 'Tároló zárolása',
-      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) zárolódik: a diák nem klónozhatja és nem fetch-elheti, nem pusholhat bele, nem mentheti és nem törölheti. Ok: „${reason}”.`,
+      message: `A(z) „${r.name}” tároló (${this.owner(r)}) zárolódik: a diák nem klónozhatja és nem fetch-elheti, nem pusholhat bele, nem mentheti és nem törölheti. Ok: „${reason}”.`,
       confirmLabel: 'Zárolás',
       danger: true,
     }))) return;
@@ -141,7 +148,7 @@ export class AdminGitComponent implements OnInit {
   async unlock(r: GitAdminRepo): Promise<void> {
     if (!(await this.confirm.ask({
       title: 'Zárolás feloldása',
-      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) zárolása feloldódik${r.lockReason ? ` (ok volt: „${r.lockReason}”)` : ''}.`,
+      message: `A(z) „${r.name}” tároló (${this.owner(r)}) zárolása feloldódik${r.lockReason ? ` (ok volt: „${r.lockReason}”)` : ''}.`,
       confirmLabel: 'Feloldás',
     }))) return;
     if (await this.run(() => firstValueFrom(this.api.unlock(r.id)))) await this.search();
@@ -150,7 +157,7 @@ export class AdminGitComponent implements OnInit {
   async remove(r: GitAdminRepo): Promise<void> {
     if (!(await this.confirm.ask({
       title: 'Tároló törlése',
-      message: `A(z) „${r.name}” tároló (${r.ownerEmail}) véglegesen törlődik, a böngészős mentésével együtt. Biztos?`,
+      message: `A(z) „${r.name}” tároló (${this.owner(r)}) véglegesen törlődik, a böngészős mentésével együtt. Biztos?`,
       confirmLabel: 'Törlés',
       danger: true,
     }))) return;

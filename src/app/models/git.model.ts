@@ -6,19 +6,23 @@ export interface GitQuota {
   pushesPerMinute: number;
   clonesPerMinute: number;
   snapshotMaxMb: number;
+  /** A vizsgaremek-csapat közös tárolójának mérete (MB, 1–500). */
+  teamRepoMaxMb: number;
   updatedAt: string;
 }
 
 /** A kvóta-mentés kérése (a módosítás idejét a szerver állítja). */
 export type GitQuotaUpdate = Omit<GitQuota, 'updatedAt'>;
 
-export type GitRepoPurpose = 'project' | 'exercise' | 'gate';
+export type GitRepoPurpose = 'project' | 'exercise' | 'gate' | 'team';
 
 export interface GitAdminRepo {
   id: number;
   name: string;
-  ownerUserId: number;
-  ownerEmail: string;
+  /** Csapattárolónál null (a tulaj a csapat: ownerTeamId). */
+  ownerUserId: number | null;
+  ownerEmail: string | null;
+  ownerTeamId: number | null;
   purpose: GitRepoPurpose;
   projectSlug: string | null;
   sizeKb: number;
@@ -29,4 +33,4 @@ export interface GitAdminRepo {
   createdAt: string;
 }
 
-export const GIT_PURPOSE_LABELS: Record<GitRepoPurpose, string> = { project: 'projekt', exercise: 'gyakorló', gate: 'kapu' };
+export const GIT_PURPOSE_LABELS: Record<GitRepoPurpose, string> = { project: 'projekt', exercise: 'gyakorló', gate: 'kapu', team: 'csapat' };

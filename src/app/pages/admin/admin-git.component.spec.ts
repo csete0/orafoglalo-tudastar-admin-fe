@@ -4,8 +4,8 @@ import { AdminGitComponent } from './admin-git.component';
 import { AdminGitService } from '../../services/admin/admin-git.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
 
-const quota = { repoMaxMb: 50, reposPerUser: 20, fileMaxMb: 5, pushesPerMinute: 6, clonesPerMinute: 20, snapshotMaxMb: 10, updatedAt: '2027-03-06T10:00:00Z' };
-const repo = { id: 7, name: 'u12-p-bufe', ownerUserId: 12, ownerEmail: 'diak@x.hu', purpose: 'project', projectSlug: 'bufe', sizeKb: 2048,
+const quota = { repoMaxMb: 50, reposPerUser: 20, fileMaxMb: 5, pushesPerMinute: 6, clonesPerMinute: 20, snapshotMaxMb: 10, teamRepoMaxMb: 50, updatedAt: '2027-03-06T10:00:00Z' };
+const repo = { id: 7, name: 'u12-p-bufe', ownerUserId: 12, ownerEmail: 'diak@x.hu', ownerTeamId: null, purpose: 'project', projectSlug: 'bufe', sizeKb: 2048,
   lastPushAt: null, locked: false, lockReason: null, overQuota: false, createdAt: '2027-03-06T10:00:00Z' } as const;
 
 describe('AdminGitComponent', () => {
