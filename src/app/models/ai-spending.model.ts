@@ -25,6 +25,8 @@ export const AI_SOURCES = [
   { key: 'teacher-code-comments', label: 'Tanár: kód-megjegyzés javaslat', color: 'var(--series-teacher-code-comments)' },
   { key: 'team-repo-review', label: 'Csapat: MI-repóátnézés', color: 'var(--series-team-repo-review)' },
   { key: 'teacher-office-task', label: 'Tanár: irodai feladat megoldásból', color: 'var(--series-teacher-office-task)' },
+  { key: 'oral-exam-voice', label: 'Szóbeli vizsga: hang (OpenAI)', color: 'var(--series-oral-exam-voice)' },
+  { key: 'oral-exam-grading', label: 'Szóbeli vizsga: értékelés', color: 'var(--series-oral-exam-grading)' },
 ] as const;
 
 export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
