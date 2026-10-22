@@ -39,6 +39,8 @@
   --series-teacher-code-comments: #8fd4e8;
   --series-team-repo-review: #c7a6f2;
   --series-teacher-office-task: #b88ae0;
+  --series-oral-exam-voice: #2fa36b;
+  --series-oral-exam-grading: #d9825b;
 }
 
 /* A tanári felületről áthozott oldalak (§3 migráció) a tanári app Tailwind-témájának
