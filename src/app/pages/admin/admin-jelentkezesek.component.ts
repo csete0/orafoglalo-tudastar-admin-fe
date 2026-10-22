@@ -5,12 +5,13 @@ import { AdminApplicationStore } from '../../services/admin/admin-application.st
 import { ToastService } from '../../shared/toast/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { UtcPipe } from '../../shared/utc/utc.pipe';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-jelentkezesek',
   standalone: true,
-  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent],
+  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
   template: `
     <div class="max-w-5xl">
       <h1 class="page-title">Tanári jelentkezések</h1>
@@ -46,7 +47,7 @@ import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.
                 <p class="font-medium truncate">{{ application.applicantName }}</p>
                 <p class="text-sm text-text-muted truncate">{{ application.applicantEmail }}</p>
               </div>
-              <span class="text-xs text-text-muted shrink-0">{{ application.createdAt | date: 'yyyy.MM.dd' }}</span>
+              <span class="text-xs text-text-muted shrink-0">{{ application.createdAt | utc | date: 'yyyy.MM.dd' }}</span>
             </div>
             @if (application.status === 'Approved') {
               <span class="badge badge-success mb-2">Elfogadva</span>

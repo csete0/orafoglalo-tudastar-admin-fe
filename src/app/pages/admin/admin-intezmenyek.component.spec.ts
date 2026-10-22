@@ -392,9 +392,33 @@ describe('AdminIntezmenyekComponent', () => {
     const component = fixture.componentInstance;
 
     component.startNewLicense(1);
+    storeMock.load.mockClear();
     component.createLicense(1);
 
     expect(component.newLicenseSchoolId).toBeNull();
+    // A „Nyilvános (licenc alapján)” jelölés a licenctől függ: az intézménylista újratöltődik.
+    expect(storeMock.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('a hely sorszáma 1-től számol, az időpontok budapesti helyi időben (a BE zóna nélkül küldi az UTC-t)', () => {
+    configure([makeSchool({ id: 1, name: 'Forrás', createdAt: '2026-10-22T22:05:00' })], [makeLicense({ id: 40, schoolId: 1 })]);
+    licenseStoreMock.seats.set({
+      40: [{ userId: 1, displayName: 'Kovács Anna', email: 'anna@example.com', seatIndex: 0, claimedAt: '2026-10-22T22:00:00',
+        lastActivityAt: '2026-10-22T22:20:00', isFresh: true, sessionInProgress: false }],
+    });
+    const fixture = TestBed.createComponent(AdminIntezmenyekComponent);
+    fixture.detectChanges();
+    const buttons: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button'));
+    buttons.find((b) => b.textContent?.includes('Helyek megtekintése'))!.click();
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent!;
+    expect(text).toContain('1. hely');
+    expect(text).not.toContain('#0');
+    const day = new Date('2026-10-22T22:05:00Z');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    expect(text).toContain(`létrehozva ${day.getFullYear()}.${pad(day.getMonth() + 1)}.${pad(day.getDate())}`);
+    const last = new Date('2026-10-22T22:20:00Z');
+    expect(text).toContain(`utoljára: ${pad(last.getMonth() + 1)}.${pad(last.getDate())} ${pad(last.getHours())}:${pad(last.getMinutes())}`);
   });
 
   it('confirmMerge() no-op, ha a forrás vagy a cél már nem szerepel a store.schools() listájában', async () => {

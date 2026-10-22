@@ -7,6 +7,7 @@ import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { ToastService } from '../../shared/toast/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { UtcPipe } from '../../shared/utc/utc.pipe';
 
 const BYTES_PER_MB = 1048576;
 
@@ -14,7 +15,7 @@ const BYTES_PER_MB = 1048576;
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-tanarok',
   standalone: true,
-  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent],
+  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
   template: `
     <div class="max-w-5xl">
       <h1 class="page-title">Tanárok</h1>
@@ -48,14 +49,14 @@ const BYTES_PER_MB = 1048576;
                   {{ teacher.taskSetCount }}@if (teacher.maxTaskSets !== null) { / {{ teacher.maxTaskSets }}} feladatsor ·
                   {{ teacher.groupCount }} csoport ·
                   {{ mb(teacher.storageUsedBytes) }}@if (teacher.maxStorageBytes !== null) { / {{ mb(teacher.maxStorageBytes) }}} MB tárhely ·
-                  tag {{ teacher.createdAt | date: 'yyyy.MM.dd' }} óta
+                  tag {{ teacher.createdAt | utc | date: 'yyyy.MM.dd' }} óta
                 </p>
                 <!-- A7: "jóváhagyott, de soha semmit nem csináló tanár" felismerése -
                      iskolai megkeresés indulásakor ez az ELSŐ dolog, amit tudni akarunk. -->
                 <p class="text-xs mt-0.5 text-text-muted">
                   {{ teacher.invitedStudentCount }} behívott diák ·
                   @if (teacher.lastActivityAt) {
-                    utolsó aktivitás {{ teacher.lastActivityAt | date: 'yyyy.MM.dd' }}
+                    utolsó aktivitás {{ teacher.lastActivityAt | utc | date: 'yyyy.MM.dd' }}
                   } @else {
                     <span class="text-danger">még nem volt aktivitás</span>
                   }
