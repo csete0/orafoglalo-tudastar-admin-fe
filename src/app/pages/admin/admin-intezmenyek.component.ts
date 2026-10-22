@@ -7,6 +7,7 @@ import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { ToastService } from '../../shared/toast/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { UtcPipe } from '../../shared/utc/utc.pipe';
 import { SchoolAdminDto } from '../../models/teacher-moderation.model';
 import {
   InstitutionalLicenseDto,
@@ -18,7 +19,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-intezmenyek',
   standalone: true,
-  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent],
+  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
   template: `
     <div class="max-w-5xl">
       <h1 class="page-title">Intézmények (admin)</h1>
@@ -114,7 +115,7 @@ import {
               }
               <p class="text-xs text-text-muted mt-1">
                 {{ school.teacherCount }} tanár · {{ school.groupCount }} csoport ·
-                létrehozva {{ school.createdAt | date: 'yyyy.MM.dd' }}
+                létrehozva {{ school.createdAt | utc | date: 'yyyy.MM.dd' }}
                 @if (school.createdByName || school.createdByEmail) {
                   · {{ school.createdByName }}@if (school.createdByEmail) { ({{ school.createdByEmail }})}
                 }
@@ -133,7 +134,7 @@ import {
                   </label>
                   @if (school.publicApprovedAt) {
                     <span class="text-text-muted">
-                      jóváhagyva {{ school.publicApprovedAt | date: 'yyyy.MM.dd' }}@if (school.publicApprovedByEmail) {, {{ school.publicApprovedByEmail }}}
+                      jóváhagyva {{ school.publicApprovedAt | utc | date: 'yyyy.MM.dd' }}@if (school.publicApprovedByEmail) {, {{ school.publicApprovedByEmail }}}
                     </span>
                   } @else {
                     <span class="badge badge-warning">jóváhagyásra vár</span>
@@ -265,7 +266,7 @@ import {
                       <ul class="mt-2 space-y-1">
                         @for (seat of licenseStore.seats()[license.id] ?? []; track seat.userId) {
                           <li class="flex items-center gap-2 flex-wrap">
-                            <span class="text-text-muted">#{{ seat.seatIndex }}</span>
+                            <span class="text-text-muted">{{ seat.seatIndex + 1 }}. hely</span>
                             <span>{{ seat.displayName || seat.email }}</span>
                             <span [class]="seat.isFresh ? 'text-success' : 'text-text-muted'">
                               {{ seat.isFresh ? 'aktív' : 'tétlen' }}
@@ -278,7 +279,7 @@ import {
                               </span>
                             }
                             <span class="text-text-muted">
-                              utoljára: {{ seat.lastActivityAt | date: 'MM.dd HH:mm' }}
+                              utoljára: {{ seat.lastActivityAt | utc | date: 'MM.dd HH:mm' }}
                             </span>
                             <button
                               (click)="confirmReleaseSeat(license, seat.userId, seat.displayName || seat.email)"
@@ -579,6 +580,7 @@ export class AdminIntezmenyekComponent {
       },
       () => {
         this.newLicenseSchoolId = null;
+        this.store.load(); // a „Nyilvános (licenc alapján)” jelölés a licenctől függ
       },
     );
   }
@@ -627,6 +629,7 @@ export class AdminIntezmenyekComponent {
       },
       (updated) => {
         this.editingLicenseId = null;
+        this.store.load(); // az érvényesség a „Nyilvános (licenc alapján)” jelölést is változtathatja
         this.warnIfSeatsSkipped(updated.skippedDueToActiveSessionCount);
       },
     );
@@ -650,6 +653,7 @@ export class AdminIntezmenyekComponent {
     // SZÁNDÉKOSAN kihagyja a helyét). A callback-ből mutatott toast korrigálja ezt, ha a
     // valóság eltér az ígérettől.
     this.licenseStore.revoke(license.id, (result) => {
+      this.store.load();
       this.warnIfSeatsSkipped(result.skippedDueToActiveSessionCount);
     });
   }
