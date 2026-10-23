@@ -148,5 +148,6 @@ describe('AuditLogComponent', () => {
 
     expect(fixture.componentInstance.isLoading()).toBe(false);
     expect(el.querySelectorAll('tbody tr').length).toBe(1);
+    expect(el.querySelector('.empty')).toBeNull();
   });
 });
