@@ -160,8 +160,11 @@ describe('AdminProbaerettsegiComponent – teljes oldal', () => {
   });
 
   afterEach(() => {
-    http.verify();
-    vi.restoreAllMocks();
+    try {
+      http.verify();
+    } finally {
+      vi.restoreAllMocks(); // egy bukott teszt ne vigye tovább a setInterval/prompt kémeket
+    }
   });
 
   // ── Betöltés, megjelenítés ───────────────────────────────────────
