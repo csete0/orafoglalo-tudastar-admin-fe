@@ -71,6 +71,19 @@ describe('AdminTanarokComponent', () => {
     });
   }
 
+  it('a tárhely MB-ban, egy tizedessel; kvótánál a plafon is (WP-C8 karakterizáció a bytes-pipe előtt)', () => {
+    configure([
+      makeTeacher({ id: 1, storageUsedBytes: 1572864, maxStorageBytes: 104857600 }),
+      makeTeacher({ id: 2, storageUsedBytes: 0 }),
+      makeTeacher({ id: 3, storageUsedBytes: 1048575 }),
+    ]);
+    const fixture = TestBed.createComponent(AdminTanarokComponent);
+    fixture.detectChanges();
+    const usage = [...(fixture.nativeElement as HTMLElement).querySelectorAll('li.card p.text-xs.mt-1')]
+      .map((p) => p.textContent!.replace(/\s+/g, ' ').trim().split(' · ')[2]);
+    expect(usage).toEqual(['1.5 / 100.0 MB tárhely', '0.0 MB tárhely', '1.0 MB tárhely']);
+  });
+
   // UI-TT-129 kiterjesztés: ugyanaz az "aria-expanded hiánya" harmonika-altípus (ld.
   // feladatsor-szerkeszto.component.ts toggleSection/toggleTask), csak itt a dekoratív chevron-ikon
   // helyett egy szöveges ▲/▼ karakter jelzi vizuálisan a "Kvóta" szerkesztő-blokk nyitott/csukott
