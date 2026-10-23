@@ -26,7 +26,7 @@ describe('UsersComponent', () => {
   const expectSearch = (): TestRequest => http.expectOne((r) => r.url === URL_);
   const params = (req: TestRequest) =>
     Object.fromEntries(req.request.params.keys().map((k) => [k, req.request.params.get(k)]));
-  /** A flush utáni Promise-lánc (firstValueFrom → await → signal) lefutása, utána render. */
+  /** A flush utáni aszinkron lánc (resource → signal, illetve await) lefutása, utána render. */
   async function settle() {
     await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
@@ -36,10 +36,18 @@ describe('UsersComponent', () => {
     input.value = value;
     input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input'));
   }
-  const submit = () => el.querySelector('form')!.dispatchEvent(new Event('submit'));
+  /** Felhasználói esemény, utána render (a lista-kérést a resource a változásészlelésben indítja, mint az appban). */
+  function submit() {
+    el.querySelector('form')!.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+  function click(button: HTMLButtonElement) {
+    button.click();
+    fixture.detectChanges();
+  }
   const pagerButtons = () => el.querySelectorAll<HTMLButtonElement>('.pager button');
 
-  beforeEach(async () => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [UsersComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
@@ -47,8 +55,8 @@ describe('UsersComponent', () => {
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(UsersComponent);
     el = fixture.nativeElement;
+    // Nincs whenStable(): a függő lista-kérés (resource) a teszt végéig nyitva tartja az app stabilitását.
     fixture.detectChanges();
-    await fixture.whenStable();
   });
 
   afterEach(() => http.verify());
@@ -111,12 +119,12 @@ describe('UsersComponent', () => {
     expect(prev.disabled).toBe(true);
     expect(next.disabled).toBe(false);
 
-    next.click();
+    click(next);
     let req = expectSearch();
     expect(req.request.params.get('page')).toBe('2');
     req.flush(page([user(2)], 120));
     await settle();
-    next.click();
+    click(next);
     expectSearch().flush(page([user(3)], 120));
     await settle();
     expect(el.querySelector('.pager span')?.textContent?.trim()).toBe('3 / 3');
@@ -124,7 +132,7 @@ describe('UsersComponent', () => {
     expect(prev.disabled).toBe(false);
     expect(next.disabled).toBe(true);
 
-    prev.click();
+    click(prev);
     req = expectSearch();
     expect(req.request.params.get('page')).toBe('2');
     req.flush(page([user(2)], 120));
@@ -138,6 +146,31 @@ describe('UsersComponent', () => {
     expect(el.querySelector('.pager span')?.textContent?.trim()).toBe('1 / 3');
   });
 
+  it('változatlan szűrővel a Keresés újra lekéri az 1. oldalt (frissítés)', async () => {
+    expectSearch().flush(page([user(1)], 1));
+    await settle();
+
+    submit();
+    const req = expectSearch();
+    expect(params(req)).toEqual({ page: '1', pageSize: '50' });
+    req.flush(page([user(1), user(2)], 2));
+    await settle();
+    expect(el.querySelector('.count')?.textContent?.trim()).toBe('2 találat');
+  });
+
+  it('a lapozó az utoljára elküldött szűrővel lapoz, a be nem küldött mezőértékkel nem (WP-A4)', async () => {
+    expectSearch().flush(page([user(1)], 120));
+    await settle();
+    setValue('input[name="query"]', 'kovacs');
+    submit();
+    expectSearch().flush(page([user(1)], 120));
+    await settle();
+
+    setValue('input[name="query"]', 'be-nem-kuldott');
+    click(pagerButtons()[1]);
+    expect(params(expectSearch())).toEqual({ page: '2', pageSize: '50', query: 'kovacs' });
+  });
+
   it('üres találatnál is legalább 1 oldal; a 0. oldalra lapozás nem kér semmit', async () => {
     expectSearch().flush(page([], 0));
     await settle();
@@ -148,14 +181,16 @@ describe('UsersComponent', () => {
     http.expectNone((r) => r.url === URL_);
   });
 
-  it('hibánál a betöltés-jelző leáll, a korábbi sorok maradnak, a hiba továbbmegy (nincs hibaüzenet)', async () => {
+  it('hibánál a betöltés-jelző leáll, a korábbi sorok maradnak, nincs hibaüzenet', async () => {
     expectSearch().flush(page([user(1)], 1));
     await settle();
 
-    const done = fixture.componentInstance.search();
+    submit();
     expectSearch().flush(null, { status: 500, statusText: 'Server Error' });
-    await expect(done).rejects.toMatchObject({ status: 500 });
-    fixture.detectChanges();
+    await settle();
+
+    expect(el.querySelector('[role="alert"], .error')).toBeNull();
+    expect(el.querySelector('.count')?.textContent?.trim()).toBe('1 találat');
 
     expect(fixture.componentInstance.isLoading()).toBe(false);
     expect(el.querySelectorAll('tbody tr').length).toBe(1);

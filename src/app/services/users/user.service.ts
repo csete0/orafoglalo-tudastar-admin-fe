@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface UserSearchResult {
@@ -97,13 +97,13 @@ export interface UserDetail {
 export class UserService {
   private readonly http = inject(HttpClient);
 
-  async search(filter: UserSearchFilter): Promise<UserSearchPage> {
+  search(filter: UserSearchFilter): Observable<UserSearchPage> {
     let params = new HttpParams().set('page', filter.page).set('pageSize', filter.pageSize);
     if (filter.query) params = params.set('query', filter.query);
     if (filter.role) params = params.set('role', filter.role);
     if (filter.subscriptionStatus) params = params.set('subscriptionStatus', filter.subscriptionStatus);
 
-    return firstValueFrom(this.http.get<UserSearchPage>(`${environment.apiUrl}/users`, { params }));
+    return this.http.get<UserSearchPage>(`${environment.apiUrl}/users`, { params });
   }
 
   async getDetail(id: number): Promise<UserDetail> {

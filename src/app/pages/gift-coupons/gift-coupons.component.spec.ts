@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { GiftCouponsComponent } from './gift-coupons.component';
 import { GiftCouponListItem, GiftCouponPage } from '../../services/gift-coupons/gift-coupon.service';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { environment } from '../../../environments/environment';
 
 const URL_ = `${environment.apiUrl}/gift-coupons`;
@@ -23,7 +24,7 @@ describe('GiftCouponsComponent', () => {
   const expectPage = (): TestRequest => http.expectOne((r) => r.url === URL_ && r.method === 'GET');
   const params = (req: TestRequest) =>
     Object.fromEntries(req.request.params.keys().map((k) => [k, req.request.params.get(k)]));
-  /** A flush utáni Promise-lánc (firstValueFrom → await → signal) lefutása, utána render. */
+  /** A flush utáni aszinkron lánc (resource → signal, illetve await) lefutása, utána render. */
   async function settle() {
     await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
@@ -33,7 +34,15 @@ describe('GiftCouponsComponent', () => {
     input.value = value;
     input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input'));
   }
-  const submit = () => el.querySelector('form')!.dispatchEvent(new Event('submit'));
+  /** Felhasználói esemény, utána render (a lista-kérést a resource a változásészlelésben indítja, mint az appban). */
+  function submit() {
+    el.querySelector('form')!.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+  function click(button: HTMLButtonElement) {
+    button.click();
+    fixture.detectChanges();
+  }
   const pagerButtons = () => el.querySelectorAll<HTMLButtonElement>('.pager button');
   const rowButtons = (i: number) => el.querySelectorAll('tbody tr')[i].querySelectorAll<HTMLButtonElement>('.actions button');
   const rowMessage = (i: number) => el.querySelectorAll('tbody tr')[i].querySelector('.row-message')?.textContent?.trim() ?? null;
@@ -43,7 +52,7 @@ describe('GiftCouponsComponent', () => {
     await settle();
   }
 
-  beforeEach(async () => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [GiftCouponsComponent],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -51,8 +60,8 @@ describe('GiftCouponsComponent', () => {
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(GiftCouponsComponent);
     el = fixture.nativeElement;
+    // Nincs whenStable(): a függő lista-kérés (resource) a teszt végéig nyitva tartja az app stabilitását.
     fixture.detectChanges();
-    await fixture.whenStable();
   });
 
   afterEach(() => {
@@ -116,7 +125,7 @@ describe('GiftCouponsComponent', () => {
     expect(el.querySelector('.pager span')?.textContent?.trim()).toBe('1 / 3');
     expect(pagerButtons()[0].disabled).toBe(true);
 
-    pagerButtons()[1].click();
+    click(pagerButtons()[1]);
     const req = expectPage();
     expect(req.request.params.get('page')).toBe('2');
     req.flush(page([coupon(51)], 150));
@@ -167,26 +176,29 @@ describe('GiftCouponsComponent', () => {
     expect(rowButtons(0)[0].disabled).toBe(false);
   });
 
-  it('érvénytelenítés: a böngésző confirm()-ja kérdez; mégse esetén nincs kérés', async () => {
+  it('érvénytelenítés: az app megerősítő dialógusa kérdez (piros gombbal); mégse esetén nincs kérés', async () => {
     await init([coupon(1)]);
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const confirmSpy = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
 
     rowButtons(0)[1].click();
     await settle();
 
-    expect(confirmSpy).toHaveBeenCalledWith('Biztosan érvényteleníted a(z) GIFT-1 ajándékkódot?');
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Biztosan érvényteleníted a(z) GIFT-1 ajándékkódot?', danger: true }),
+    );
     http.expectNone(`${URL_}/1/deactivate`);
+    expect(Array.from(rowButtons(0)).map((b) => b.disabled)).toEqual([false, false]);
   });
 
   it('érvénytelenítés: megerősítés után POST, majd a lista újratöltése a mostani szűrővel és oldallal', async () => {
     await init([coupon(1)], 120);
-    pagerButtons()[1].click();
+    click(pagerButtons()[1]);
     expectPage().flush(page([coupon(1)], 120));
     await settle();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
 
     rowButtons(0)[1].click();
-    fixture.detectChanges();
+    await settle();
     const req = http.expectOne(`${URL_}/1/deactivate`);
     expect(req.request.method).toBe('POST');
     expect(Array.from(rowButtons(0)).map((b) => b.disabled)).toEqual([true, true]);
@@ -202,9 +214,10 @@ describe('GiftCouponsComponent', () => {
 
   it('érvénytelenítés hibájánál sor-üzenet, nincs újratöltés', async () => {
     await init([coupon(1)]);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
 
     rowButtons(0)[1].click();
+    await settle();
     http.expectOne(`${URL_}/1/deactivate`).flush(null, { status: 409, statusText: 'Conflict' });
     await settle();
 
@@ -212,13 +225,14 @@ describe('GiftCouponsComponent', () => {
     http.expectNone((r) => r.url === URL_);
   });
 
-  it('a lista betöltési hibájánál a betöltés-jelző leáll, a korábbi sorok maradnak, a hiba továbbmegy', async () => {
+  it('a lista betöltési hibájánál a betöltés-jelző leáll, a korábbi sorok maradnak, nincs hibaüzenet', async () => {
     await init([coupon(1)]);
 
-    const done = fixture.componentInstance.search();
+    submit();
     expectPage().flush(null, { status: 500, statusText: 'Server Error' });
-    await expect(done).rejects.toMatchObject({ status: 500 });
-    fixture.detectChanges();
+    await settle();
+
+    expect(el.querySelector('[role="alert"], .error, .row-message')).toBeNull();
 
     expect(fixture.componentInstance.isLoading()).toBe(false);
     expect(el.querySelectorAll('tbody tr').length).toBe(1);

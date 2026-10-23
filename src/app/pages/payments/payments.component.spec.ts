@@ -23,7 +23,7 @@ describe('PaymentsComponent', () => {
   const expectPage = (): TestRequest => http.expectOne((r) => r.url === URL_);
   const params = (req: TestRequest) =>
     Object.fromEntries(req.request.params.keys().map((k) => [k, req.request.params.get(k)]));
-  /** A flush utáni Promise-lánc (firstValueFrom → await → signal) lefutása, utána render. */
+  /** A flush utáni aszinkron lánc (resource → signal, illetve await) lefutása, utána render. */
   async function settle() {
     await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
@@ -33,10 +33,18 @@ describe('PaymentsComponent', () => {
     input.value = value;
     input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input'));
   }
-  const submit = () => el.querySelector('form')!.dispatchEvent(new Event('submit'));
+  /** Felhasználói esemény, utána render (a lista-kérést a resource a változásészlelésben indítja, mint az appban). */
+  function submit() {
+    el.querySelector('form')!.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+  function click(button: HTMLButtonElement) {
+    button.click();
+    fixture.detectChanges();
+  }
   const pagerButtons = () => el.querySelectorAll<HTMLButtonElement>('.pager button');
 
-  beforeEach(async () => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [PaymentsComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
@@ -44,8 +52,8 @@ describe('PaymentsComponent', () => {
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PaymentsComponent);
     el = fixture.nativeElement;
+    // Nincs whenStable(): a függő lista-kérés (resource) a teszt végéig nyitva tartja az app stabilitását.
     fixture.detectChanges();
-    await fixture.whenStable();
   });
 
   afterEach(() => http.verify());
@@ -120,7 +128,7 @@ describe('PaymentsComponent', () => {
     expect(el.querySelector('.pager span')?.textContent?.trim()).toBe('1 / 2');
     expect(pagerButtons()[0].disabled).toBe(true);
 
-    pagerButtons()[1].click();
+    click(pagerButtons()[1]);
     const req = expectPage();
     expect(req.request.params.get('page')).toBe('2');
     req.flush(page([payment(51)], 51));
@@ -132,14 +140,15 @@ describe('PaymentsComponent', () => {
     expect(expectPage().request.params.get('page')).toBe('1');
   });
 
-  it('hibánál a betöltés-jelző leáll, a korábbi sorok maradnak, a hiba továbbmegy', async () => {
+  it('hibánál a betöltés-jelző leáll, a korábbi sorok maradnak, nincs hibaüzenet', async () => {
     expectPage().flush(page([payment(1)], 1));
     await settle();
 
-    const done = fixture.componentInstance.search();
+    submit();
     expectPage().flush(null, { status: 500, statusText: 'Server Error' });
-    await expect(done).rejects.toMatchObject({ status: 500 });
-    fixture.detectChanges();
+    await settle();
+
+    expect(el.querySelector('[role="alert"], .error')).toBeNull();
 
     expect(fixture.componentInstance.isLoading()).toBe(false);
     expect(el.querySelectorAll('tbody tr').length).toBe(1);

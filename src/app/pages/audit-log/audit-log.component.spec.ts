@@ -23,7 +23,7 @@ describe('AuditLogComponent', () => {
   const expectPage = (): TestRequest => http.expectOne((r) => r.url === URL_);
   const params = (req: TestRequest) =>
     Object.fromEntries(req.request.params.keys().map((k) => [k, req.request.params.get(k)]));
-  /** A flush utáni Promise-lánc (firstValueFrom → await → signal) lefutása, utána render. */
+  /** A flush utáni aszinkron lánc (resource → signal, illetve await) lefutása, utána render. */
   async function settle() {
     await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
@@ -33,7 +33,15 @@ describe('AuditLogComponent', () => {
     input.value = value;
     input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input'));
   }
-  const submit = () => el.querySelector('form')!.dispatchEvent(new Event('submit'));
+  /** Felhasználói esemény, utána render (a lista-kérést a resource a változásészlelésben indítja, mint az appban). */
+  function submit() {
+    el.querySelector('form')!.dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+  function click(button: HTMLButtonElement) {
+    button.click();
+    fixture.detectChanges();
+  }
   const pagerButtons = () => el.querySelectorAll<HTMLButtonElement>('.pager button');
 
   /** Az init: előbb a TargetType-lista, csak utána az 1. oldal. */
@@ -45,7 +53,7 @@ describe('AuditLogComponent', () => {
     await settle();
   }
 
-  beforeEach(async () => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AuditLogComponent],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -53,8 +61,8 @@ describe('AuditLogComponent', () => {
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AuditLogComponent);
     el = fixture.nativeElement;
+    // Nincs whenStable(): a függő lista-kérés (resource) a teszt végéig nyitva tartja az app stabilitását.
     fixture.detectChanges();
-    await fixture.whenStable();
   });
 
   afterEach(() => http.verify());
@@ -118,7 +126,7 @@ describe('AuditLogComponent', () => {
     expect(el.querySelector('.pager span')?.textContent?.trim()).toBe('1 / 2');
     expect(pagerButtons()[0].disabled).toBe(true);
 
-    pagerButtons()[1].click();
+    click(pagerButtons()[1]);
     const req = expectPage();
     expect(req.request.params.get('page')).toBe('2');
     req.flush(page([entry(2)], 100));
@@ -129,13 +137,14 @@ describe('AuditLogComponent', () => {
     expect(expectPage().request.params.get('page')).toBe('1');
   });
 
-  it('hibánál a betöltés-jelző leáll, a korábbi sorok maradnak, a hiba továbbmegy', async () => {
+  it('hibánál a betöltés-jelző leáll, a korábbi sorok maradnak, nincs hibaüzenet', async () => {
     await init([entry(1)], 1);
 
-    const done = fixture.componentInstance.search();
+    submit();
     expectPage().flush(null, { status: 500, statusText: 'Server Error' });
-    await expect(done).rejects.toMatchObject({ status: 500 });
-    fixture.detectChanges();
+    await settle();
+
+    expect(el.querySelector('[role="alert"], .error')).toBeNull();
 
     expect(fixture.componentInstance.isLoading()).toBe(false);
     expect(el.querySelectorAll('tbody tr').length).toBe(1);

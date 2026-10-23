@@ -1,16 +1,16 @@
 <h1>Felhasználó-kereső</h1>
 
-<form class="filters" (ngSubmit)="search()">
-  <input type="text" placeholder="Email / név / iskola" name="query" [(ngModel)]="query" />
+<form class="filters" [formGroup]="form" (ngSubmit)="search()">
+  <input type="text" placeholder="Email / név / iskola" name="query" formControlName="query" />
 
-  <select name="role" [(ngModel)]="role">
+  <select name="role" formControlName="role">
     <option value="">Minden szerep</option>
     <option value="student">Diák</option>
     <option value="teacher">Tanár</option>
     <option value="admin">Admin</option>
   </select>
 
-  <select name="subscriptionStatus" [(ngModel)]="subscriptionStatus">
+  <select name="subscriptionStatus" formControlName="subscriptionStatus">
     <option value="">Minden előfizetés-állapot</option>
     <option value="Active">Aktív</option>
     <option value="Expired">Lejárt</option>
@@ -54,8 +54,4 @@
   </table>
 </div>
 
-<div class="pager">
-  <button type="button" [disabled]="page() <= 1" (click)="goToPage(page() - 1)">Előző</button>
-  <span>{{ page() }} / {{ totalPages }}</span>
-  <button type="button" [disabled]="page() >= totalPages" (click)="goToPage(page() + 1)">Következő</button>
-</div>
+<div class="pager" app-pager [page]="page()" [pageSize]="pageSize" [total]="totalCount()" (pageChange)="goToPage($event)"></div>
