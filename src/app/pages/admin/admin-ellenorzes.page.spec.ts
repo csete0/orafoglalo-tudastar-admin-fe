@@ -78,10 +78,12 @@ describe('AdminEllenorzesComponent – teljes oldal', () => {
   const sorted = (e: Element) => [...e.classList].sort();
   const tabBar = () => el.querySelector('.max-w-5xl > .hairline + div')!;
   const tabButtons = () => [...tabBar().querySelectorAll<HTMLButtonElement>('button')];
-  /** A fülsor utáni tartalom (a fül teljes DOM-ja). */
+  /** A fülsor utáni tartalom (a fül teljes DOM-ja); a `display: contents` fül-komponensek (`app-…-tab`) gyerekeivel. */
   const contentNodes = () => {
     const nodes: Element[] = [];
-    for (let n = tabBar().nextElementSibling; n; n = n.nextElementSibling) nodes.push(n);
+    for (let n = tabBar().nextElementSibling; n; n = n.nextElementSibling) {
+      nodes.push(...(/^APP-.*-TAB$/.test(n.tagName) ? [...n.children] : [n]));
+    }
     return nodes;
   };
   const filterBar = () => contentNodes()[0];
@@ -527,5 +529,17 @@ describe('AdminEllenorzesComponent – teljes oldal', () => {
     await settle();
     await tab('Kérdés-jelentések');
     expect(buttonsIn(0)[0].disabled).toBe(false);
+  });
+
+  it('gyors lapozásnál az előző, még futó kérés lemondódik, így mindig a legutóbbi oldal látszik (WP-C6 után)', async () => {
+    await loaded([R1, R2], 45);
+    await click(pagerButtons()[1]);
+    const stale = reportsReq(true, 2);
+    await click(filterButtons()[1]);
+    expect(stale.cancelled).toBe(true);
+    reportsReq(false, 1).flush({ items: [R3], totalCount: 1 });
+    await settle();
+    expect(items().length).toBe(1);
+    expect(pager()).toBeNull();
   });
 });

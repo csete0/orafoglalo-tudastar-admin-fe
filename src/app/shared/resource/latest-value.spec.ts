@@ -37,4 +37,25 @@ describe('latestValue', () => {
     await settle();
     expect(latest()).toBe('harmadik');
   });
+
+  it('helyben írható (pl. egy művelet után); betöltés közben ez marad, a következő eredmény felülírja', async () => {
+    const injector = TestBed.inject(Injector);
+    const page = signal(1);
+    let response = new Subject<string>();
+    const res = rxResource({ params: () => page(), stream: () => (response = new Subject<string>()), injector });
+    const latest = latestValue(res);
+
+    TestBed.tick();
+    response.next('első');
+    await settle();
+    latest.set('helyben módosított');
+    expect(latest()).toBe('helyben módosított');
+
+    page.set(2);
+    TestBed.tick();
+    expect(latest()).toBe('helyben módosított');
+    response.next('második');
+    await settle();
+    expect(latest()).toBe('második');
+  });
 });
