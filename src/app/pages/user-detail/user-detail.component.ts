@@ -1,148 +1,100 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
-import { UserService, UserDetail } from '../../services/users/user.service';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { Observable, firstValueFrom } from 'rxjs';
+import { UserService } from '../../services/users/user.service';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
-import { ProjectAdminUserProject, RUNTIME_LABELS } from '../../models/projektmuhely.model';
 import { AdminPracticeGradesService } from '../../services/admin/admin-practice-grades.service';
-import { PRACTICE_KIND_LABELS, PRACTICE_TIER_LABELS, PracticeGradeUserDetail } from '../../models/practice-grades.model';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
+import { UserTeacherProfileComponent } from './user-teacher-profile.component';
+import { UserSubscriptionsComponent } from './user-subscriptions.component';
+import { UserPaymentsComponent } from './user-payments.component';
+import { UserGroupsParentsComponent } from './user-groups-parents.component';
+import { UserProjectsComponent } from './user-projects.component';
+import { UserPracticeComponent } from './user-practice.component';
 
 @Component({
   selector: 'app-user-detail',
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [
+    RouterLink,
+    UserTeacherProfileComponent,
+    UserSubscriptionsComponent,
+    UserPaymentsComponent,
+    UserGroupsParentsComponent,
+    UserProjectsComponent,
+    UserPracticeComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './user-detail.component.html',
-  styleUrl: './user-detail.component.css',
+  styleUrls: ['./user-detail-section.css', './user-detail.component.css'],
 })
-export class UserDetailComponent implements OnInit {
+export class UserDetailComponent {
   private readonly userService = inject(UserService);
-  private readonly route = inject(ActivatedRoute);
-  private readonly projects = inject(AdminProjektmuhelyService);
+  private readonly projektmuhely = inject(AdminProjektmuhelyService);
   private readonly practiceGrades = inject(AdminPracticeGradesService);
   private readonly confirmService = inject(ConfirmService);
-  private userId!: number;
 
-  readonly user = signal<UserDetail | null>(null);
-  readonly isLoading = signal(true);
-  readonly errorMessage = signal<string | null>(null);
-  readonly actionBusy = signal(false);
+  /** A `users/:id` útvonal-paramétere (withComponentInputBinding). */
+  readonly id = input.required<string>();
+  readonly userId = computed(() => Number(this.id()));
+
+  // A három szakasz külön végpontról, egymástól függetlenül (párhuzamosan) töltődik.
+  readonly user = rxResource({
+    params: () => this.userId(),
+    stream: ({ params }) => this.userService.getDetail(params),
+  });
+  private readonly projectsResource = rxResource({
+    params: () => this.userId(),
+    stream: ({ params }) => this.projektmuhely.getUserProjects(params),
+    defaultValue: [],
+  });
+  /** Projektműhely-haladás; null = nem sikerült. */
+  readonly projects = computed(() => (this.projectsResource.error() ? null : this.projectsResource.value()));
+  readonly practiceResource = rxResource({
+    params: () => this.userId(),
+    stream: ({ params }) => this.practiceGrades.getUser(params),
+  });
+  /** Gyakorló értékelések + keret; undefined = tölt, null = nem sikerült. */
+  readonly practice = computed(() => (this.practiceResource.error() ? null : this.practiceResource.value()));
+
+  private readonly actionRunning = signal(false);
+  /** A támogatói műveletek gombjai a kérés és az utána következő újratöltés végéig tiltottak. */
+  readonly actionBusy = computed(() => this.actionRunning() || this.user.isLoading());
   readonly actionMessage = signal<string | null>(null);
-  /** Projektműhely-haladás (külön végpont: a többi szakasztól függetlenül töltődik). null = nem sikerült. */
-  readonly userProjects = signal<ProjectAdminUserProject[] | null>([]);
-  readonly runtimeLabels = RUNTIME_LABELS;
-
-  /** Gyakorló értékelések + keret (külön végpont, mint a Projektműhely). undefined = tölt, null = nem sikerült. */
-  readonly practice = signal<PracticeGradeUserDetail | null | undefined>(undefined);
-  readonly kindLabels = PRACTICE_KIND_LABELS;
-  readonly tierLabels = PRACTICE_TIER_LABELS;
-  /** Kézi keret-jóváírás űrlapja (support eset, pl. „+5 ma”). */
-  creditKind = 'code';
-  creditAmount = 5;
-  creditReason = '';
-  readonly creditBusy = signal(false);
-  readonly creditMessage = signal<string | null>(null);
-
-  async ngOnInit(): Promise<void> {
-    this.userId = Number(this.route.snapshot.paramMap.get('id'));
-    void firstValueFrom(this.projects.getUserProjects(this.userId)).then((p) => this.userProjects.set(p), () => this.userProjects.set(null));
-    void firstValueFrom(this.practiceGrades.getUser(this.userId)).then(
-      (p) => {
-        this.practice.set(p);
-        if (p.quotas.length && !p.quotas.some((q) => q.kind === this.creditKind)) this.creditKind = p.quotas[0].kind;
-      },
-      () => this.practice.set(null),
-    );
-    await this.reload();
-    this.isLoading.set(false);
-  }
-
-  formatBytes(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 
   // ── A3: három támogatói művelet ─────────────────────────────────
 
-  async unlock(): Promise<void> {
-    await this.runAction(() => this.userService.unlock(this.userId), 'Zárolás feloldva.');
+  unlock(): Promise<void> {
+    return this.runAction(this.userService.unlock(this.userId()), 'Zárolás feloldva.');
   }
 
-  async resendConfirmation(): Promise<void> {
-    await this.runAction(
-      () => this.userService.resendConfirmation(this.userId),
-      'Megerősítő e-mail elküldve.',
-    );
+  resendConfirmation(): Promise<void> {
+    return this.runAction(this.userService.resendConfirmation(this.userId()), 'Megerősítő e-mail elküldve.');
   }
 
   async confirmEmailManually(): Promise<void> {
     // SEC-4 (terv, kétlépcsős megerősítés): ez a diák/tanár fiókjának állapotát
     // közvetlenül módosítja token/link nélkül - admin-oldali megerősítés kell hozzá.
-    if (!confirm('Biztosan kézzel megerősíted ennek a felhasználónak az e-mail-címét?')) {
-      return;
-    }
-    await this.runAction(
-      () => this.userService.confirmEmailManually(this.userId),
-      'E-mail kézzel megerősítve.',
-    );
-  }
-
-  // ── Gyakorló értékelés: kézi keret-jóváírás (naplózva) ─────────
-
-  /** 1–50 közötti egész darab és nem üres indoklás kell (az indoklás az audit-naplóba kerül). */
-  creditValid(): boolean {
-    return Number.isInteger(this.creditAmount) && this.creditAmount >= 1 && this.creditAmount <= 50 && this.creditReason.trim().length > 0;
-  }
-
-  async grantCredit(): Promise<void> {
-    if (!this.creditValid() || this.creditBusy()) return;
-    const kind = this.kindLabels[this.creditKind] ?? this.creditKind;
     const ok = await this.confirmService.ask({
-      title: 'Kézi keret-jóváírás',
-      message: `+${this.creditAmount} gyakorló értékelés (${kind}) a mai napi és az e havi keretre. A jóváírás az audit-naplóba kerül. Folytatod?`,
-      confirmLabel: 'Jóváírás',
+      title: 'E-mail kézi megerősítése',
+      message: 'Biztosan kézzel megerősíted ennek a felhasználónak az e-mail-címét?',
+      confirmLabel: 'Megerősítés',
     });
     if (!ok) return;
-
-    this.creditBusy.set(true);
-    this.creditMessage.set(null);
-    try {
-      this.practice.set(
-        await firstValueFrom(
-          this.practiceGrades.credit(this.userId, { kind: this.creditKind, amount: this.creditAmount, reason: this.creditReason.trim() }),
-        ),
-      );
-      this.creditReason = '';
-      this.creditMessage.set('Keret jóváírva.');
-    } catch (err) {
-      this.creditMessage.set(extractErrorMessage(err, 'A jóváírás sikertelen.'));
-    } finally {
-      this.creditBusy.set(false);
-    }
+    await this.runAction(this.userService.confirmEmailManually(this.userId()), 'E-mail kézzel megerősítve.');
   }
 
-  private async runAction(action: () => Promise<void>, successMessage: string): Promise<void> {
-    this.actionBusy.set(true);
+  private async runAction(action: Observable<void>, successMessage: string): Promise<void> {
+    this.actionRunning.set(true);
     this.actionMessage.set(null);
     try {
-      await action();
+      await firstValueFrom(action);
       this.actionMessage.set(successMessage);
-      await this.reload();
+      this.user.reload();
     } catch {
       this.actionMessage.set('A művelet sikertelen.');
     } finally {
-      this.actionBusy.set(false);
-    }
-  }
-
-  private async reload(): Promise<void> {
-    try {
-      this.user.set(await this.userService.getDetail(this.userId));
-    } catch {
-      this.errorMessage.set('A felhasználó nem található.');
+      this.actionRunning.set(false);
     }
   }
 }

@@ -1,11 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { UserDetailComponent } from './user-detail.component';
 import { UserDetail } from '../../services/users/user.service';
 import { ProjectAdminUserProject } from '../../models/projektmuhely.model';
 import { PracticeGradeUserDetail } from '../../models/practice-grades.model';
+import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiUrl;
@@ -58,7 +59,10 @@ const practice: PracticeGradeUserDetail = {
   credits: [{ createdAt: '2026-10-10T09:00:00Z', kind: 'files', amount: 2, adminEmail: 'admin@example.com', reason: 'support #7' }],
 };
 
-/** Karakterizáció (WP-C1 előtt rögzítve): a teljes oldal valódi service-ekkel + HttpTestingController. */
+/**
+ * Karakterizáció (a WP-C1 szétbontás előtt rögzítve, utána változatlan elvárásokkal): a teljes oldal valódi service-ekkel
+ * + HttpTestingController. Szándékos eltérés: a kézi e-mail-megerősítés a natív confirm() helyett a ConfirmService-t kérdezi.
+ */
 describe('UserDetailComponent – teljes oldal', () => {
   let fixture: ComponentFixture<UserDetailComponent>;
   let http: HttpTestingController;
@@ -97,12 +101,13 @@ describe('UserDetailComponent – teljes oldal', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '89' } } } },
       ],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(UserDetailComponent);
     el = fixture.nativeElement;
+    // Az útvonal-paraméter input (withComponentInputBinding).
+    fixture.componentRef.setInput('id', '89');
     fixture.detectChanges();
   });
 
@@ -215,16 +220,18 @@ describe('UserDetailComponent – teljes oldal', () => {
     expect(text()).toContain('Megerősítő e-mail elküldve.');
   });
 
-  it('e-mail kézi megerősítése csak jóváhagyás után megy el', async () => {
+  it('e-mail kézi megerősítése csak jóváhagyás után megy el (az app megerősítő dialógusával)', async () => {
     await load();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const confirmSpy = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
     actionButtons()[2].click();
     fixture.detectChanges();
     await settle();
-    expect(confirmSpy).toHaveBeenCalledWith('Biztosan kézzel megerősíted ennek a felhasználónak az e-mail-címét?');
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Biztosan kézzel megerősíted ennek a felhasználónak az e-mail-címét?' }),
+    );
     http.expectNone(`${USER_URL}/confirm-email`);
 
-    confirmSpy.mockReturnValue(true);
+    confirmSpy.mockResolvedValue(true);
     actionButtons()[2].click();
     fixture.detectChanges();
     await settle();
@@ -240,6 +247,18 @@ describe('UserDetailComponent – teljes oldal', () => {
     await load();
     const select = el.querySelector<HTMLSelectElement>('.credit-form select')!;
     expect(select.value).toBe('files');
+  });
+
+  it('másik felhasználó id-jére váltva (ugyanaz a komponens) mindhárom szakasz újratöltődik', async () => {
+    await load();
+    fixture.componentRef.setInput('id', '90');
+    fixture.detectChanges();
+    get(`${API}/projects/users/90`).flush([]);
+    get(`${API}/practice-grades/users/90`).flush(practice);
+    get(`${API}/users/90`).flush({ ...fullUser, id: 90, firstName: 'Másik' });
+    await settle();
+    expect(text()).toContain('Másik Diák');
+    expect(text()).toContain('Még nem kezdett projektet.');
   });
 
   it('újratöltési hiba egy művelet után a hibaüzenetre vált', async () => {

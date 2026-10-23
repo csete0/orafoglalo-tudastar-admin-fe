@@ -1,7 +1,9 @@
-import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { UserDetailComponent } from './user-detail.component';
+import { UserPracticeCreditComponent } from './user-practice-credit.component';
 import { UserDetail, UserService } from '../../services/users/user.service';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
 import { AdminPracticeGradesService } from '../../services/admin/admin-practice-grades.service';
@@ -39,19 +41,23 @@ describe('UserDetailComponent – gyakorló értékelések', () => {
       imports: [UserDetailComponent],
       providers: [
         provideRouter([]),
-        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '89' } } } },
-        { provide: UserService, useValue: { getDetail: vi.fn(() => Promise.resolve(user)) } },
+        { provide: UserService, useValue: { getDetail: vi.fn(() => of(user)) } },
         { provide: AdminProjektmuhelyService, useValue: { getUserProjects: vi.fn(() => of([])) } },
         { provide: AdminPracticeGradesService, useValue: practiceSvc },
         { provide: ConfirmService, useValue: confirm },
       ],
     });
     const fixture = TestBed.createComponent(UserDetailComponent);
+    fixture.componentRef.setInput('id', '89');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
     return fixture;
   }
+
+  /** A kézi jóváírás űrlap-komponense (a gyakorló szakaszon belül). */
+  const credit = (fixture: ComponentFixture<UserDetailComponent>): UserPracticeCreditComponent =>
+    fixture.debugElement.query(By.directive(UserPracticeCreditComponent)).componentInstance;
 
   beforeEach(() => {
     practiceSvc = {
@@ -79,9 +85,8 @@ describe('UserDetailComponent – gyakorló értékelések', () => {
 
   it('a jóváírás megerősítés után megy el, és a frissített keret jelenik meg', async () => {
     const fixture = await render();
-    const c = fixture.componentInstance;
-    c.creditAmount = 5;
-    c.creditReason = '  support #123  ';
+    const c = credit(fixture);
+    c.form.patchValue({ amount: 5, reason: '  support #123  ' });
     await c.grantCredit();
     fixture.detectChanges();
 
@@ -90,25 +95,24 @@ describe('UserDetailComponent – gyakorló értékelések', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('[data-testid="practice-quota"]')!.textContent).toContain('ma 2 / 7 (+5 jóváírva)');
     expect(el.textContent).toContain('Keret jóváírva.');
-    expect(c.creditReason).toBe('');
+    expect(c.form.controls.reason.value).toBe('');
   });
 
   it('elutasított megerősítésnél nem ír jóvá', async () => {
     confirm.ask.mockResolvedValue(false);
-    const c = (await render()).componentInstance;
-    c.creditReason = 'support';
+    const c = credit(await render());
+    c.form.patchValue({ reason: 'support' });
     await c.grantCredit();
     expect(practiceSvc.credit).not.toHaveBeenCalled();
   });
 
   it('indoklás nélkül vagy érvénytelen darabbal a jóváírás nem indul', async () => {
-    const c = (await render()).componentInstance;
-    c.creditReason = '   ';
+    const c = credit(await render());
+    c.form.patchValue({ reason: '   ' });
     await c.grantCredit();
-    c.creditReason = 'support';
-    c.creditAmount = 0;
+    c.form.patchValue({ reason: 'support', amount: 0 });
     await c.grantCredit();
-    c.creditAmount = 2.5;
+    c.form.patchValue({ amount: 2.5 });
     await c.grantCredit();
     expect(confirm.ask).not.toHaveBeenCalled();
     expect(practiceSvc.credit).not.toHaveBeenCalled();
@@ -117,8 +121,8 @@ describe('UserDetailComponent – gyakorló értékelések', () => {
   it('a BE hibaüzenetét mutatja, ha a jóváírás nem sikerül', async () => {
     practiceSvc.credit.mockReturnValue(throwError(() => ({ error: { errorMessage: 'Legfeljebb 50 jóváírható.' } })));
     const fixture = await render();
-    fixture.componentInstance.creditReason = 'support';
-    await fixture.componentInstance.grantCredit();
+    credit(fixture).form.patchValue({ reason: 'support' });
+    await credit(fixture).grantCredit();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Legfeljebb 50 jóváírható.');
   });

@@ -1,0 +1,115 @@
+/* A felhasználó-részlet közös szakasz-stílusai: az oldal és a szakasz-komponensek is betöltik
+   (a komponens-CSS nem ér át a gyerek komponensekbe). */
+
+.error {
+  color: var(--admin-danger);
+}
+
+section {
+  margin-bottom: 1.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.action-buttons button {
+  background: var(--admin-surface-2);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text);
+  border-radius: 0.375rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.action-buttons button:not(:disabled):hover {
+  border-color: var(--admin-accent);
+}
+
+.action-buttons button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-message {
+  margin: 0.625rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--admin-text-muted);
+}
+
+h2 {
+  font-size: 0.9375rem;
+  color: var(--admin-text-muted);
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+dt {
+  color: var(--admin-text-muted);
+}
+
+dd {
+  margin: 0;
+}
+
+/* Keskeny képernyőn a táblázat saját tartójában görgessen, ne az egész oldal. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.4rem 0.625rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+th {
+  background: var(--admin-surface);
+  color: var(--admin-text-muted);
+  font-weight: 600;
+}
+
+tr.flagged td {
+  color: var(--admin-danger);
+}
+
+table a {
+  color: var(--admin-accent);
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.empty {
+  color: var(--admin-text-muted);
+  font-size: 0.8125rem;
+}
