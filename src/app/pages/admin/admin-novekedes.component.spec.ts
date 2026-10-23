@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { AdminNovekedesComponent, ratio } from './admin-novekedes.component';
+import { AdminNovekedesComponent } from './admin-novekedes.component';
 import { AdminGrowthService } from '../../services/admin/admin-growth.service';
+import { ratio } from '../../shared/format/number-utils';
 
 describe('AdminNovekedesComponent (Növekedés)', () => {
   function setup() {

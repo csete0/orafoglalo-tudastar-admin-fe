@@ -1,30 +1,31 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe, PercentPipe } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import { AdminGrowthService } from '../../services/admin/admin-growth.service';
-import { GrowthCancellations, GrowthCohort, GrowthOverview } from '../../models/growth.model';
+import { GrowthCohort } from '../../models/growth.model';
+import { ratio } from '../../shared/format/number-utils';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
-import {
-  AdminNovekedesAjanloComponent, AdminNovekedesBevetelComponent, AdminNovekedesEgysegComponent, AdminNovekedesProbaComponent,
-} from './admin-novekedes-uzlet.component';
+import { latestValue } from '../../shared/resource/latest-value';
+import { TabBarComponent, TabItem } from '../../shared/tab-bar/tab-bar.component';
+import { AdminNovekedesAjanloComponent } from './novekedes/novekedes-ajanlo.component';
+import { AdminNovekedesBevetelComponent } from './novekedes/novekedes-bevetel.component';
+import { AdminNovekedesEgysegComponent } from './novekedes/novekedes-egyseg.component';
+import { AdminNovekedesProbaComponent } from './novekedes/novekedes-proba.component';
 
 export type GrowthTab = 'kohorszok' | 'bevetel' | 'proba' | 'egyseg' | 'ajanlo';
-
-/** Arány (0–1), ha van nevező; különben null. */
-export function ratio(part: number | null, whole: number): number | null {
-  return part === null || whole === 0 ? null : part / whole;
-}
 
 /**
  * Növekedés (PATRICKS-EREDMENYEK-ES-NOVEKEDES-TERV.md, 3.): heti regisztrációs kohorszok → aktiválódás (munka az első 7
  * napban) → fizetés → megmaradás (aktív volt-e az 1./4./8. héten), és hogy a lemondók miért mondanak le. Tesztfiókok nélkül.
- * A további fülek a tulajdonosi irányítópult: bevétel, próba → fizetés, egységgazdaság, ajánlóprogram (admin-novekedes-uzlet.component.ts).
+ * A további fülek a tulajdonosi irányítópult: bevétel, próba → fizetés, egységgazdaság, ajánlóprogram (novekedes/; mindegyik a
+ * megnyitásakor tölt). A kohorsz-adat az oldalon él, így fülváltáskor megmarad.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-novekedes',
   imports: [
-    DatePipe, PercentPipe, LocalSpinnerComponent,
+    DatePipe, PercentPipe, LocalSpinnerComponent, TabBarComponent,
     AdminNovekedesBevetelComponent, AdminNovekedesProbaComponent, AdminNovekedesEgysegComponent, AdminNovekedesAjanloComponent,
   ],
   template: `
@@ -37,12 +38,8 @@ export function ratio(part: number | null, whole: number): number | null {
       </p>
       <div class="hairline"></div>
 
-      <nav class="flex gap-5 overflow-x-auto border-b border-border-default mb-6" role="tablist" data-testid="growth-tabs">
-        @for (t of tabs; track t.id) {
-          <button type="button" role="tab" [attr.aria-selected]="tab() === t.id" class="tab-btn whitespace-nowrap"
-            [class.tab-btn-active]="tab() === t.id" (click)="tab.set(t.id)">{{ t.label }}</button>
-        }
-      </nav>
+      <nav app-tab-bar class="flex gap-5 overflow-x-auto border-b border-border-default mb-6" role="tablist" data-testid="growth-tabs"
+        [tabs]="tabs" [(active)]="tab"></nav>
 
       @switch (tab()) {
         @case ('bevetel') { <app-admin-novekedes-bevetel /> }
@@ -137,10 +134,10 @@ export function ratio(part: number | null, whole: number): number | null {
     </div>
   `,
 })
-export class AdminNovekedesComponent implements OnInit {
+export class AdminNovekedesComponent {
   private readonly api = inject(AdminGrowthService);
 
-  readonly tabs: { id: GrowthTab; label: string }[] = [
+  readonly tabs: readonly TabItem<GrowthTab>[] = [
     { id: 'kohorszok', label: 'Kohorszok' },
     { id: 'bevetel', label: 'Bevétel' },
     { id: 'proba', label: 'Próba → fizetés' },
@@ -150,34 +147,36 @@ export class AdminNovekedesComponent implements OnInit {
   readonly tab = signal<GrowthTab>('kohorszok');
   readonly weekOptions = [12, 26];
   readonly weeks = signal(12);
-  readonly overview = signal<GrowthOverview | null>(null);
-  readonly cohorts = signal<GrowthCohort[]>([]);
-  readonly cancellations = signal<GrowthCancellations | null>(null);
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
+
+  /** Egyszer, az oldal megnyitásakor. */
+  private readonly summary = rxResource({
+    stream: () => forkJoin({ overview: this.api.getOverview(), cancellations: this.api.getCancellations(90) }),
+  });
+  /** A kulcs a hetek száma; hét-váltás közben és hiba után a korábbi táblázat marad. */
+  private readonly cohortsResource = rxResource({ params: () => this.weeks(), stream: ({ params: weeks }) => this.api.getCohorts(weeks) });
+  private readonly latestCohorts = latestValue(this.cohortsResource);
+
+  /** A tartalom csak akkor látszik, ha az összesítő és a kohorszok is megjöttek (mint a régi közös betöltésnél). */
+  private readonly ready = computed(() => this.summary.hasValue() && this.latestCohorts() !== undefined);
+  readonly overview = computed(() => (this.ready() ? this.summary.value()?.overview ?? null : null));
+  readonly cancellations = computed(() => (this.ready() ? this.summary.value()?.cancellations ?? null : null));
+  readonly cohorts = computed(() => this.latestCohorts() ?? []);
+  /** Az első betöltés bármely hibája az egész fület hibának mutatja; a későbbi hét-váltásé csak a kohorszokat. */
+  readonly error = computed(() => {
+    const cohortsFailed = this.cohortsResource.error() !== undefined;
+    if (this.summary.error() !== undefined || (cohortsFailed && this.latestCohorts() === undefined)) return 'A növekedési adatok betöltése nem sikerült.';
+    return cohortsFailed ? 'A kohorszok betöltése nem sikerült.' : null;
+  });
+  readonly loading = computed(() => !this.ready() && this.error() === null);
 
   private readonly maxReason = computed(() => Math.max(1, ...(this.cancellations()?.reasons ?? []).map((r) => r.count)));
 
   readonly ratioOf = ratio;
 
-  ngOnInit(): void {
-    forkJoin({ overview: this.api.getOverview(), cohorts: this.api.getCohorts(this.weeks()), cancellations: this.api.getCancellations(90) }).subscribe({
-      next: (r) => {
-        this.overview.set(r.overview);
-        this.cohorts.set(r.cohorts);
-        this.cancellations.set(r.cancellations);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('A növekedési adatok betöltése nem sikerült.');
-        this.loading.set(false);
-      },
-    });
-  }
-
+  /** Az aktív hét újrakattintása is újratölt (mint eddig). */
   setWeeks(weeks: number): void {
-    this.weeks.set(weeks);
-    this.api.getCohorts(weeks).subscribe({ next: (c) => this.cohorts.set(c), error: () => this.error.set('A kohorszok betöltése nem sikerült.') });
+    if (weeks === this.weeks()) this.cohortsResource.reload();
+    else this.weeks.set(weeks);
   }
 
   cells(c: GrowthCohort): (number | null)[] {

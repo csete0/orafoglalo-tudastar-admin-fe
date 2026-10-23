@@ -228,6 +228,25 @@ describe('AdminNovekedesComponent – teljes oldal', () => {
     expect(errorText()).toBeNull();
   });
 
+  it('az aktív hét újrakattintása is újratölti a kohorszokat', async () => {
+    await loaded();
+    await week(12);
+    req('cohorts', ['weeks', 12]).flush(COHORTS_26);
+    await settle();
+    expect(rowTexts('growth-cohorts')[0]).toContain('2026.04.06.');
+  });
+
+  it('gyors hét-váltás: az előző kohorsz-kérés lemondódik, a későbbi válasz nyer (WP-C7 javulás)', async () => {
+    await loaded();
+    await week(26);
+    const first = req('cohorts', ['weeks', 26]);
+    await week(12);
+    expect(first.cancelled).toBe(true);
+    req('cohorts', ['weeks', 12]).flush(COHORTS_12);
+    await settle();
+    expect(rowTexts('growth-cohorts')[0]).toContain('2026.09.28.');
+  });
+
   it('hét-váltás hibája: üzenet, a korábbi táblázat és a többi adat marad', async () => {
     await loaded();
     await week(26);
@@ -344,6 +363,17 @@ describe('AdminNovekedesComponent – teljes oldal', () => {
     expect(rowTexts('trial-cohorts')).toEqual(['2026.05.04. 26 10 10 3 30% 1']);
     expect(text(el.querySelector('[data-testid="trial-kpis"]')!)).toBe(
       'Regisztrált 26 Próbát kezdett 10 Próba → fizetés (lejárt próbák) 30% Próba nélkül fizetett 1');
+  });
+
+  it('Próba → fizetés: az aktív hét újrakattintása is újratölt', async () => {
+    await loaded();
+    await tab('Próba → fizetés');
+    req('trial-funnel', ['weeks', 12]).flush(TRIAL_12);
+    await settle();
+    await week(12);
+    req('trial-funnel', ['weeks', 12]).flush(TRIAL_26);
+    await settle();
+    expect(rowTexts('trial-cohorts')[0]).toContain('2026.05.04.');
   });
 
   it('Próba → fizetés: a hét-váltás hibája üzenetet ad, a korábbi adat marad', async () => {
