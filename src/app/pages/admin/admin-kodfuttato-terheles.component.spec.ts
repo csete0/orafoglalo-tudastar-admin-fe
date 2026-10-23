@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import { AdminKodfuttatoTerhelesComponent } from './admin-kodfuttato-terheles.component';
 import { AdminJudge0LoadService } from '../../services/admin/admin-judge0-load.service';
-import { Judge0LoadReport, Judge0LoadStats, fmtMs } from '../../models/judge0-load.model';
+import { JUDGE0_KINDS, Judge0LoadReport, Judge0LoadStats, fmtMs, judge0KindLabel } from '../../models/judge0-load.model';
+import { BarChartComponent } from '../../shared/bar-chart/bar-chart.component';
 
 const stats = (runs: number, p95Ms: number | null, extra: Partial<Judge0LoadStats> = {}): Judge0LoadStats => ({
   runs, busy: 0, timeouts: 0, systemErrors: 0, completed: runs, p50Ms: 1000, p95Ms, avgMs: 800, maxMs: 2500,
@@ -26,6 +28,54 @@ const report: Judge0LoadReport = {
   ],
 };
 
+/**
+ * ÁTMENETI összehasonlító teszt (WP-B2): az oldal régi, saját diagram-számítása (`dailyColumns`/`hourlyColumns` + `ticks()`/`bars()`)
+ * szó szerint, hogy a közös `app-bar-chart` kimenete ugyanarra a jelentésre ugyanaz legyen.
+ */
+const OLD = { width: 860, height: 180, padLeft: 36, padRight: 8, padTop: 10, padBottom: 22 };
+type OldColumn = { key: string; label: string; rows: { kind: string; stats: Judge0LoadStats }[] };
+function oldDailyColumns(r: Judge0LoadReport): OldColumn[] {
+  const byDate = new Map<string, OldColumn>();
+  for (const d of r.daily) {
+    const col = byDate.get(d.date) ?? { key: d.date, label: 'nap', rows: [] };
+    col.rows.push(d);
+    byDate.set(d.date, col);
+  }
+  return [...byDate.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+function oldHourlyColumns(r: Judge0LoadReport, day: string): OldColumn[] {
+  const rows = r.hourly.filter((h) => h.hour.startsWith(day));
+  return Array.from({ length: 24 }, (_, h) => {
+    const hh = String(h).padStart(2, '0');
+    return { key: hh, label: h % 3 === 0 ? hh : '', rows: rows.filter((x) => x.hour.slice(11, 13) === hh) };
+  });
+}
+const oldMax = (columns: OldColumn[]) => Math.max(4, ...columns.map((c) => c.rows.reduce((s, r) => s + r.stats.runs, 0)));
+function oldTicks(columns: OldColumn[]) {
+  const plotH = OLD.height - OLD.padTop - OLD.padBottom;
+  const max = oldMax(columns);
+  return [0, 1, 2, 3, 4].map((i) => ({ y: OLD.padTop + plotH - (i / 4) * plotH, label: String(Math.round((max / 4) * i)) }));
+}
+function oldBars(columns: OldColumn[]) {
+  const plotW = OLD.width - OLD.padLeft - OLD.padRight;
+  const plotH = OLD.height - OLD.padTop - OLD.padBottom;
+  const step = plotW / Math.max(1, columns.length);
+  const width = Math.max(2, Math.min(18, step * 0.7));
+  const max = oldMax(columns);
+  return columns.map((c, i) => {
+    let base = OLD.padTop + plotH;
+    const segments = JUDGE0_KINDS.flatMap((k) => {
+      const runs = c.rows.filter((r) => r.kind === k.key).reduce((s, r) => s + r.stats.runs, 0);
+      if (!runs) return [];
+      const h = (runs / max) * plotH;
+      base -= h;
+      return [{ y: base, h, color: k.color }];
+    });
+    const parts = c.rows.map((r) => `${judge0KindLabel(r.kind)}: ${r.stats.runs} futás, p95 ${fmtMs(r.stats.p95Ms)}`);
+    return { key: c.key, x: OLD.padLeft + i * step + (step - width) / 2, width, label: c.label, title: [c.key, ...parts].join(' · '), segments };
+  });
+}
+
 describe('AdminKodfuttatoTerhelesComponent', () => {
   async function setup(r: Judge0LoadReport = report) {
     const api = { getReport: vi.fn(() => of(r)) };
@@ -34,28 +84,68 @@ describe('AdminKodfuttatoTerhelesComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, c: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, api };
+    const charts = () => fixture.debugElement.queryAll(By.directive(BarChartComponent)).map((d) => d.componentInstance as BarChartComponent);
+    return { fixture, c: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, api, charts };
   }
 
   it('állapot-kártya a javaslattal és az okokkal, napi táblázat legfrissebb nappal elöl', async () => {
-    const { el, c, api } = await setup();
+    const { el, c, api, charts } = await setup();
     expect(api.getReport).toHaveBeenCalledWith(7);
     expect(el.textContent).toContain('Figyelni kell');
     expect(el.textContent).toContain('Érdemes figyelni');
     expect(el.textContent).toContain('túlterhelt” (503)');
     expect(c.dailyRows().map((d) => d.date)).toEqual(['2026-10-18', '2026-10-18', '2026-10-17']);
-    expect(c.dailyBars().length).toBe(2);
-    expect(c.dailyBars()[1].segments.length).toBe(2); // futtatás + pontozás halmozva
+    const daily = charts()[0];
+    expect(daily.bars().length).toBe(2);
+    expect(daily.bars()[1].segments.length).toBe(2); // futtatás + pontozás halmozva
   });
 
   it('alapból a legutolsó nap óránként; másik napra váltható', async () => {
-    const { c } = await setup();
+    const { c, charts } = await setup();
     expect(c.selectedDay()).toBe('2026-10-18');
     expect(c.hourlyRows().length).toBe(3);
-    expect(c.hourlyBars().length).toBe(24);
-    expect(c.hourlyBars()[9].segments.length).toBe(2);
+    const hourly = charts()[1];
+    expect(hourly.bars().length).toBe(24);
+    expect(hourly.bars()[9].segments.length).toBe(2);
     c.selectedDay.set('2026-10-17');
     expect(c.hourlyRows().map((h) => h.hour)).toEqual(['2026-10-17T10:00:00']);
+  });
+
+  it('a napi oszlopra kattintva az a nap nyílik meg óránként', async () => {
+    const { fixture, c, el } = await setup();
+    const overlays = el.querySelectorAll<SVGRectElement>('svg[aria-label="Napi Judge0-futások fajtánként"] rect[fill="transparent"]');
+    expect(overlays.length).toBe(2);
+    expect(overlays[0].classList.contains('cursor-pointer')).toBe(true);
+    overlays[0].dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(c.selectedDay()).toBe('2026-10-17');
+    expect(el.textContent).toContain('óránként');
+  });
+
+  it('átmeneti összehasonlítás: a diagramok geometriája bájtra azonos a régi oldal-számítással', async () => {
+    const big: Judge0LoadReport = {
+      ...report,
+      daily: [
+        ...report.daily,
+        { date: '2026-10-16', kind: 'contest', stats: stats(7, null), workHoursP95Ms: null },
+        { date: '2026-10-16', kind: 'aspnet', stats: stats(3, 900), workHoursP95Ms: 900 },
+        { date: '2026-10-18', kind: 'project', stats: stats(55, 1200), workHoursP95Ms: 1200 },
+      ],
+      hourly: [...report.hourly, { hour: '2026-10-18T23:00:00', kind: 'project', stats: stats(9, 700) }, { hour: '2026-10-18T00:00:00', kind: 'aspnet', stats: stats(1, 300) }],
+    };
+    const { fixture, c, charts } = await setup(big);
+    for (const day of ['2026-10-18', '2026-10-17', '2026-10-16']) {
+      c.selectedDay.set(day);
+      fixture.detectChanges();
+      const [daily, hourly] = charts();
+      const oldDaily = oldDailyColumns(big);
+      expect(daily.ticks()).toEqual(oldTicks(oldDaily));
+      // a napi oszlop felirata a régi kódban sem jelent meg (csak az óránkéntié) – a felirat mezőt ezért nem vetjük össze
+      expect(daily.bars().map((b) => ({ ...b, label: 'nap' }))).toEqual(oldBars(oldDaily));
+      const oldHourly = oldHourlyColumns(big, day);
+      expect(hourly.ticks()).toEqual(oldTicks(oldHourly));
+      expect(hourly.bars()).toEqual(oldBars(oldHourly));
+    }
   });
 
   it('nincs adat: üres állapot, nincs diagram', async () => {
