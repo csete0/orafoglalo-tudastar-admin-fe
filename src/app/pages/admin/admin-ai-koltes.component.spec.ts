@@ -7,6 +7,8 @@ import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { AiSpendingOverviewDto, QuizMaintenanceDecisionDto } from '../../models/ai-spending.model';
 import { AiKoltesOverviewState } from './ai-koltes/ai-koltes-overview.state';
 import { AiKoltesRequestLogState } from './ai-koltes/ai-koltes-request-log.state';
+import { AiKoltesMaintenanceState } from './ai-koltes/ai-koltes-maintenance.state';
+import { AiKoltesDecisionsState } from './ai-koltes/ai-koltes-decisions.state';
 
 function makeOverview(overrides: Partial<AiSpendingOverviewDto> = {}): AiSpendingOverviewDto {
   return {
@@ -99,6 +101,10 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     fixture.debugElement.injector.get(AiKoltesOverviewState);
   const logState = (fixture: ComponentFixture<AdminAiKoltesComponent>) =>
     fixture.debugElement.injector.get(AiKoltesRequestLogState);
+  const maintenanceState = (fixture: ComponentFixture<AdminAiKoltesComponent>) =>
+    fixture.debugElement.injector.get(AiKoltesMaintenanceState);
+  const decisionsState = (fixture: ComponentFixture<AdminAiKoltesComponent>) =>
+    fixture.debugElement.injector.get(AiKoltesDecisionsState);
 
   it('induláskor betölti az áttekintést és a legtöbbet költőket', async () => {
     configure();
@@ -202,23 +208,23 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
   it('összevonáshoz legfeljebb 2 kérdés jelölhető ki', async () => {
     configure();
     const fixture = await createFixture();
-    const component = fixture.componentInstance;
+    const state = decisionsState(fixture);
 
-    component.toggleMergeSelection(1);
-    component.toggleMergeSelection(2);
-    component.toggleMergeSelection(3);
+    state.toggleMergeSelection(1);
+    state.toggleMergeSelection(2);
+    state.toggleMergeSelection(3);
 
-    expect(component.selectedForMerge().size).toBe(2);
-    expect(component.selectedForMerge().has(3)).toBe(false);
+    expect(state.selectedForMerge().size).toBe(2);
+    expect(state.selectedForMerge().has(3)).toBe(false);
   });
 
   it('a futtatás indítása előtt megerősítést kér, és a törzsben átadja a form adatait', async () => {
     configure();
     const fixture = await createFixture();
-    const component = fixture.componentInstance;
-    component.maintenanceForm = { rangeStartId: 500, rangeEndId: 600, model: 'openai/gpt-4o-mini', dryRun: false };
+    const state = maintenanceState(fixture);
+    state.form = { rangeStartId: 500, rangeEndId: 600, model: 'openai/gpt-4o-mini', dryRun: false };
 
-    await component.runMaintenance();
+    await state.runMaintenance();
 
     expect(confirmMock.ask).toHaveBeenCalledWith(expect.objectContaining({ danger: true }));
     expect(svcMock['runMaintenance']).toHaveBeenCalledWith({
@@ -233,12 +239,12 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
   it('összevonáskor a megtartott/duplikátum kérdés helyesen kerül szétválasztásra', async () => {
     configure();
     const fixture = await createFixture();
-    const component = fixture.componentInstance;
-    component.decisions.set([makeDecision({ questionId: 1 }), makeDecision({ questionId: 2 })]);
-    component.selectedForMerge.set(new Set([1, 2]));
-    component.mergeKeepId.set(1);
+    const state = decisionsState(fixture);
+    state.decisions.set([makeDecision({ questionId: 1 }), makeDecision({ questionId: 2 })]);
+    state.selectedForMerge.set(new Set([1, 2]));
+    state.mergeKeepId.set(1);
 
-    component.confirmMerge();
+    state.confirmMerge();
 
     expect(svcMock['mergeQuestions']).toHaveBeenCalledWith({ keepQuestionId: 1, duplicateQuestionId: 2 });
   });

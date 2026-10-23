@@ -416,6 +416,19 @@ describe('AdminAiKoltesComponent – karbantartás, eredmények, automatizmusok 
     noReq('/quiz-maintenance/runs');
   });
 
+  // WP-C2b (javulás): a régi kód a megszűnés után beérkező poll-válaszra még egy 8 mp-es kört ütemezett.
+  it('a pult megszűnésekor a folyamatban lévő poll-kérés is lemondódik, és nincs több kérés', async () => {
+    await openMaintenance();
+    await startRun();
+    await wait(8000);
+    const inFlight = req('/quiz-maintenance/runs');
+    fixture.destroy();
+    expect(inFlight.cancelled).toBe(true);
+    await vi.advanceTimersByTimeAsync(8000 * 25);
+    noReq('/quiz-maintenance/runs');
+    expect(toastSuccess).toHaveBeenCalledTimes(1);
+  });
+
   it('fülváltás után a form értékei és a becslés megmaradnak', async () => {
     await openMaintenance();
     await type(inputs()[0], '7');
