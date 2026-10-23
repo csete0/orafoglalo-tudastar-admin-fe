@@ -1,10 +1,12 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { AdminAiKoltesComponent } from './admin-ai-koltes.component';
 import { AdminAiSpendingService } from '../../services/admin/admin-ai-spending.service';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { AiSpendingOverviewDto, QuizMaintenanceDecisionDto } from '../../models/ai-spending.model';
+import { AiKoltesOverviewState } from './ai-koltes/ai-koltes-overview.state';
+import { AiKoltesRequestLogState } from './ai-koltes/ai-koltes-request-log.state';
 
 function makeOverview(overrides: Partial<AiSpendingOverviewDto> = {}): AiSpendingOverviewDto {
   return {
@@ -80,26 +82,38 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     });
   }
 
-  function createFixture() {
-    const fixture = TestBed.createComponent(AdminAiKoltesComponent);
+  // Az adat resource-okkal töltődik (a válasz a változásészlelés után, aszinkron ér be).
+  async function settle(fixture: ComponentFixture<AdminAiKoltesComponent>) {
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  async function createFixture() {
+    const fixture = TestBed.createComponent(AdminAiKoltesComponent);
+    await settle(fixture);
     return fixture;
   }
 
-  it('induláskor betölti az áttekintést és a legtöbbet költőket', () => {
+  const overviewState = (fixture: ComponentFixture<AdminAiKoltesComponent>) =>
+    fixture.debugElement.injector.get(AiKoltesOverviewState);
+  const logState = (fixture: ComponentFixture<AdminAiKoltesComponent>) =>
+    fixture.debugElement.injector.get(AiKoltesRequestLogState);
+
+  it('induláskor betölti az áttekintést és a legtöbbet költőket', async () => {
     configure();
-    const fixture = createFixture();
-    const component = fixture.componentInstance;
+    const fixture = await createFixture();
+    const state = overviewState(fixture);
 
     expect(svcMock['getOverview']).toHaveBeenCalledWith(30);
     expect(svcMock['getTopSpenders']).toHaveBeenCalledWith(30, 10);
-    expect(component.overview()?.monthTotalUsd).toBe(15.7);
-    expect(component.topSpenders().length).toBe(1);
+    expect(state.overview()?.monthTotalUsd).toBe(15.7);
+    expect(state.topSpenders().length).toBe(1);
   });
 
-  it('a tanáronkénti dolgozat-felhasználást is megjeleníti a havi kerettel', () => {
+  it('a tanáronkénti dolgozat-felhasználást is megjeleníti a havi kerettel', async () => {
     configure();
-    const fixture = createFixture();
+    const fixture = await createFixture();
     fixture.detectChanges();
 
     const card: HTMLElement = fixture.nativeElement.querySelector('[data-testid="class-test-usage"]');
@@ -110,9 +124,9 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
   });
 
   // Teljes vizsga (I): e havi értékelések, költés a napi riasztással, a feltöltések tárhelye.
-  it('a teljes vizsga értékelésének kártyáját a riasztással és a tárhellyel mutatja', () => {
+  it('a teljes vizsga értékelésének kártyáját a riasztással és a tárhellyel mutatja', async () => {
     configure();
-    const fixture = createFixture();
+    const fixture = await createFixture();
     fixture.detectChanges();
     const card: HTMLElement = fixture.nativeElement.querySelector('[data-testid="full-exam-usage"]');
     expect(card.textContent).toContain('12 vizsga · 9 diák');
@@ -121,17 +135,17 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     expect(card.textContent).toContain('+10.0 MB');
   });
 
-  it('induláskor betölti az OpenRouter kredit-egyenleget is', () => {
+  it('induláskor betölti az OpenRouter kredit-egyenleget is', async () => {
     configure();
-    const fixture = createFixture();
-    const component = fixture.componentInstance;
+    const fixture = await createFixture();
+    const state = overviewState(fixture);
 
     expect(svcMock['getCredits']).toHaveBeenCalled();
-    expect(component.credits()?.remainingCredits).toBe(76.5);
-    expect(component.creditsError()).toBe(false);
+    expect(state.credits()?.remainingCredits).toBe(76.5);
+    expect(state.creditsError()).toBe(false);
   });
 
-  it('ha az OpenRouter kredit-lekérdezés elhasal, a hibaállapot jelzi, de a többi csempe nem sérül', () => {
+  it('ha az OpenRouter kredit-lekérdezés elhasal, a hibaállapot jelzi, de a többi csempe nem sérül', async () => {
     configure();
     svcMock['getCredits'] = vi.fn().mockReturnValue(throwError(() => new Error('OpenRouter unreachable')));
     TestBed.resetTestingModule();
@@ -143,44 +157,51 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
         { provide: ConfirmService, useValue: confirmMock },
       ],
     });
-    const fixture = createFixture();
-    const component = fixture.componentInstance;
+    const fixture = await createFixture();
+    const state = overviewState(fixture);
 
-    expect(component.creditsError()).toBe(true);
-    expect(component.credits()).toBeNull();
-    expect(component.overview()).not.toBeNull();
+    expect(state.creditsError()).toBe(true);
+    expect(state.credits()).toBeNull();
+    expect(state.overview()).not.toBeNull();
   });
 
-  it('a Kérésnapló fülre váltás betölti a kérésnaplót (lustán, csak első alkalommal)', () => {
+  it('a Kérésnapló fülre váltás betölti a kérésnaplót (lustán, csak első alkalommal)', async () => {
     configure();
-    const fixture = createFixture();
+    const fixture = await createFixture();
     const component = fixture.componentInstance;
+    expect(svcMock['getRequestLog']).not.toHaveBeenCalled();
 
     component.setTab('naplo');
+    await settle(fixture);
     expect(svcMock['getRequestLog']).toHaveBeenCalledTimes(1);
 
     component.setTab('attekintes');
+    await settle(fixture);
     component.setTab('naplo');
+    await settle(fixture);
     // Másodszorra már nem tölt újra, mert logItems() nem üres - ez a lusta betöltés lényege.
     expect(svcMock['getRequestLog']).toHaveBeenCalledTimes(1);
   });
 
-  it('szűrés-változtatás visszaállítja az 1. oldalra és újratölti a naplót', () => {
+  it('szűrés-változtatás visszaállítja az 1. oldalra és újratölti a naplót', async () => {
     configure();
-    const fixture = createFixture();
-    const component = fixture.componentInstance;
-    component.logPage.set(3);
+    const fixture = await createFixture();
+    fixture.componentInstance.setTab('naplo');
+    const log = logState(fixture);
+    log.page.set(3);
+    await settle(fixture);
 
-    component.logFilter.source = 'chat';
-    component.onFilterChange();
+    log.setFilter({ source: 'chat' });
+    await settle(fixture);
 
-    expect(component.logPage()).toBe(1);
-    expect(svcMock['getRequestLog']).toHaveBeenLastCalledWith(component.logFilter, 1, 20);
+    expect(log.page()).toBe(1);
+    expect(svcMock['getRequestLog']).toHaveBeenLastCalledWith({ source: 'chat' }, 1, 20);
+    expect(log.filter()).toEqual({ source: 'chat' });
   });
 
-  it('összevonáshoz legfeljebb 2 kérdés jelölhető ki', () => {
+  it('összevonáshoz legfeljebb 2 kérdés jelölhető ki', async () => {
     configure();
-    const fixture = createFixture();
+    const fixture = await createFixture();
     const component = fixture.componentInstance;
 
     component.toggleMergeSelection(1);
@@ -193,7 +214,7 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
 
   it('a futtatás indítása előtt megerősítést kér, és a törzsben átadja a form adatait', async () => {
     configure();
-    const fixture = createFixture();
+    const fixture = await createFixture();
     const component = fixture.componentInstance;
     component.maintenanceForm = { rangeStartId: 500, rangeEndId: 600, model: 'openai/gpt-4o-mini', dryRun: false };
 
@@ -209,9 +230,9 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     expect(toastMock.success).toHaveBeenCalled();
   });
 
-  it('összevonáskor a megtartott/duplikátum kérdés helyesen kerül szétválasztásra', () => {
+  it('összevonáskor a megtartott/duplikátum kérdés helyesen kerül szétválasztásra', async () => {
     configure();
-    const fixture = createFixture();
+    const fixture = await createFixture();
     const component = fixture.componentInstance;
     component.decisions.set([makeDecision({ questionId: 1 }), makeDecision({ questionId: 2 })]);
     component.selectedForMerge.set(new Set([1, 2]));
