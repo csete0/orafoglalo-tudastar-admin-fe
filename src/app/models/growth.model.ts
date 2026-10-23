@@ -28,3 +28,76 @@ export interface GrowthCancellations {
   reasons: { key: string; label: string; count: number }[];
   recent: { createdAt: string; reason: string; comment: string }[];
 }
+
+/** Tulajdonosi irányítópult (BE: DigitalCulture.Domain/Entities/Analytics/BusinessDtos.cs). Összegek forintban. */
+export interface RevenueMonth {
+  month: string;
+  subscription: number;
+  examPass: number;
+  parentPurchase: number;
+  /** Becslés: az ajándékkód-vásárlás összege nincs tárolva - a csomag mostani listaára (bérlet-ajándék csak darabként). */
+  gift: number;
+  giftCount: number;
+  gross: number;
+  refunds: number;
+  net: number;
+  paymentCount: number;
+  refundCount: number;
+}
+
+export interface RevenueReport {
+  months: RevenueMonth[];
+  recurringMonthlyEstimate: number;
+  recurringSubscriptions: number;
+  activeExamPasses: number;
+  licences: { activeLicences: number; seats: number; seatsInUse: number; amountsTracked: boolean };
+}
+
+export interface TrialFunnelCohort {
+  weekStart: string;
+  registered: number;
+  trialStarted: number;
+  trialEnded: number;
+  trialPaid: number;
+  paidWithoutTrial: number;
+}
+
+export interface TrialFunnel {
+  cohorts: TrialFunnelCohort[];
+  trialGrantsInPeriod: number;
+}
+
+export interface UnitEconomicsMonth {
+  month: string;
+  aiCostUsd: number;
+  aiCostHuf: number;
+  unknownCostCalls: number;
+  activeUsers: number;
+  payingUsers: number;
+  netRevenue: number;
+  aiCostPerActiveUserHuf: number | null;
+  aiCostPerPayingUserHuf: number | null;
+  revenuePerPayingUserHuf: number | null;
+  marginRate: number | null;
+}
+
+export interface UnitEconomics {
+  usdToHuf: number;
+  months: UnitEconomicsMonth[];
+  topDrivers: { source: string; costUsd: number; costHuf: number; requests: number; share: number }[];
+}
+
+export interface ReferralReport {
+  created: number;
+  created30: number;
+  converted: number;
+  inviteeRewards: number;
+  referrerRewardMonths: number;
+  referrerExtend: number;
+  referrerCode: number;
+  referrerCapped: number;
+  referrerRefunded: number;
+  pending: number;
+  pendingOverdue: number;
+  topInviters: { userId: number; email: string | null; invited: number; converted: number; rewardMonths: number; pending: number }[];
+}
