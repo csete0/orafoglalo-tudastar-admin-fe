@@ -6,7 +6,6 @@ import { AuthStore } from '../../services/auth/auth.store';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
   imports: [FormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',

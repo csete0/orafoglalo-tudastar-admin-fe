@@ -29,7 +29,6 @@ const PAD_BOTTOM = 22;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-projektmuhely',
-  standalone: true,
   imports: [DecimalPipe, LocalSpinnerComponent],
   template: `
     <div class="max-w-6xl">

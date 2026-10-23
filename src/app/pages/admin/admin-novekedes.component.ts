@@ -23,7 +23,6 @@ export function ratio(part: number | null, whole: number): number | null {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-novekedes',
-  standalone: true,
   imports: [
     DatePipe, PercentPipe, LocalSpinnerComponent,
     AdminNovekedesBevetelComponent, AdminNovekedesProbaComponent, AdminNovekedesEgysegComponent, AdminNovekedesAjanloComponent,

@@ -10,7 +10,6 @@ import { UtcPipe } from '../../shared/utc/utc.pipe';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-jelentkezesek',
-  standalone: true,
   imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
   template: `
     <div class="max-w-5xl">

@@ -47,7 +47,6 @@ export function fmtUsd(v: number): string {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-ai-havi-riport',
-  standalone: true,
   imports: [NgTemplateOutlet, LocalSpinnerComponent],
   template: `
     <div class="flex items-end justify-between gap-3 flex-wrap mb-4">

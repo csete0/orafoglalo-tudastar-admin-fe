@@ -45,7 +45,6 @@ export function toBlocks(items: RubricItem[]): RubricBlock[] {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-szempontlistak',
-  standalone: true,
   imports: [LocalSpinnerComponent],
   template: `
     <div class="max-w-7xl">

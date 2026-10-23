@@ -7,7 +7,6 @@ const PAGE_SIZE = 50;
 
 @Component({
   selector: 'app-payments',
-  standalone: true,
   imports: [FormsModule, RouterLink],
   templateUrl: './payments.component.html',
   styleUrl: './payments.component.css',

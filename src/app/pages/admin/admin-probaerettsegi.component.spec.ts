@@ -65,7 +65,7 @@ describe('AdminProbaerettsegiComponent', () => {
   });
 
   it('keret-emelés: a javasolt összeg előtöltve, megerősítés után hívja az API-t; lefelé nem enged', async () => {
-    const { fixture, el, api, confirm } = await render(status());
+    const { el, api, confirm } = await render(status());
     const prompt = vi.spyOn(window, 'prompt').mockReturnValueOnce('400').mockReturnValueOnce('800');
 
     (el.querySelector('[data-testid="mock-raise"]') as HTMLButtonElement).click();

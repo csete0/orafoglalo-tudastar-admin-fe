@@ -8,7 +8,6 @@ import { HangfireService } from './services/hangfire/hangfire.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmDialogComponent, ToastComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',

@@ -14,7 +14,6 @@ const GRADE_NAMES = ['elégtelen', 'elégséges', 'közepes', 'jó', 'jeles'];
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-erettsegi-eredmenyek',
-  standalone: true,
   imports: [DatePipe, DecimalPipe, PercentPipe, LocalSpinnerComponent],
   template: `
     <div class="max-w-6xl">

@@ -17,7 +17,6 @@ const CSV_BUTTON = 'text-xs font-bold text-primary hover:underline';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-novekedes-bevetel',
-  standalone: true,
   imports: [DecimalPipe, LocalSpinnerComponent],
   template: `
     @if (error()) { <p class="text-danger text-sm mb-4">{{ error() }}</p> }
@@ -116,7 +115,6 @@ export class AdminNovekedesBevetelComponent implements OnInit {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-novekedes-proba',
-  standalone: true,
   imports: [DatePipe, PercentPipe, LocalSpinnerComponent],
   template: `
     @if (error()) { <p class="text-danger text-sm mb-4">{{ error() }}</p> }
@@ -221,7 +219,6 @@ export class AdminNovekedesProbaComponent implements OnInit {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-novekedes-egyseg',
-  standalone: true,
   imports: [DecimalPipe, PercentPipe, LocalSpinnerComponent],
   template: `
     @if (error()) { <p class="text-danger text-sm mb-4">{{ error() }}</p> }
@@ -316,7 +313,6 @@ export class AdminNovekedesEgysegComponent implements OnInit {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-novekedes-ajanlo',
-  standalone: true,
   imports: [LocalSpinnerComponent],
   template: `
     @if (error()) { <p class="text-danger text-sm mb-4">{{ error() }}</p> }

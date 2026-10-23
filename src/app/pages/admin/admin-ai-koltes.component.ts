@@ -60,7 +60,6 @@ const CHART_PAD_BOTTOM = 24;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-ai-koltes',
-  standalone: true,
   imports: [DatePipe, DecimalPipe, FormsModule, LocalSpinnerComponent, AdminAiHaviRiportComponent],
   template: `
     <div class="max-w-6xl">

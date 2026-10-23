@@ -24,7 +24,6 @@ function extractErrorMessage(err: any, fallback: string): string {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-kuponok',
-  standalone: true,
   imports: [DatePipe, FormsModule, LocalSpinnerComponent],
   template: `
     <div class="max-w-5xl">

@@ -11,7 +11,6 @@ import { ConfirmService } from './confirm.service';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-confirm-dialog',
-  standalone: true,
   imports: [IconComponent],
   template: `
     @if (confirmService.pending(); as opts) {

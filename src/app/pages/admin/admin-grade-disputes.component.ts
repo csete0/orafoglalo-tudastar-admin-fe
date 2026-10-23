@@ -14,7 +14,6 @@ import { ToastService } from '../../shared/toast/toast.service';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-grade-disputes',
-  standalone: true,
   imports: [DatePipe, FormsModule, LocalSpinnerComponent],
   template: `
     <div class="flex gap-2 mb-6 text-sm flex-wrap">

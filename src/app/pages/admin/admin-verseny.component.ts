@@ -12,7 +12,6 @@ import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-verseny',
-  standalone: true,
   imports: [DatePipe, PercentPipe, LocalSpinnerComponent],
   template: `
     <div class="max-w-6xl">

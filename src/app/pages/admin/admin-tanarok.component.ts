@@ -14,7 +14,6 @@ const BYTES_PER_MB = 1048576;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-tanarok',
-  standalone: true,
   imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
   template: `
     <div class="max-w-5xl">

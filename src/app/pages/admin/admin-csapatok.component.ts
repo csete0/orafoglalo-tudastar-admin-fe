@@ -9,7 +9,6 @@ import { AdminTeamDetail, AdminTeamRow, SYNC_LABELS } from '../../models/team.mo
 /** Vizsgaremek-csapatok (PATRICKS-FEJLESZTOMUHELY-BC-TERV.md 3.): keresés, tükrözési hibák, újrapróbálás, leválasztás. */
 @Component({
   selector: 'app-admin-csapatok',
-  standalone: true,
   imports: [FormsModule, DatePipe, KeyValuePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

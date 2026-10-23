@@ -18,7 +18,6 @@ export function fmtUsd(v: number): string {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-gyakorlo-ertekelesek',
-  standalone: true,
   imports: [DatePipe, PercentPipe, RouterLink, LocalSpinnerComponent],
   template: `
     <div class="max-w-6xl">

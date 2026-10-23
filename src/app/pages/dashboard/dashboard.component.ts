@@ -7,7 +7,6 @@ import { AdminJudge0LoadService } from '../../services/admin/admin-judge0-load.s
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
   imports: [RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',

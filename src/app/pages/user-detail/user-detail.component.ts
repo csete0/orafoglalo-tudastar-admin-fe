@@ -13,7 +13,6 @@ import { extractErrorMessage } from '../../shared/http-error/extract-error-messa
 
 @Component({
   selector: 'app-user-detail',
-  standalone: true,
   imports: [DatePipe, FormsModule, RouterLink],
   templateUrl: './user-detail.component.html',
   styleUrl: './user-detail.component.css',

@@ -41,7 +41,6 @@ interface Bar {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-kodfuttato-terheles',
-  standalone: true,
   imports: [LocalSpinnerComponent],
   template: `
     <div class="max-w-6xl">

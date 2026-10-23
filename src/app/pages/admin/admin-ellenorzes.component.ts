@@ -16,7 +16,6 @@ type Tab = 'reports' | 'inquiries' | 'payments' | 'grades';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-ellenorzes',
-  standalone: true,
   imports: [DatePipe, CurrencyPipe, FormsModule, LocalSpinnerComponent, AdminGradeDisputesComponent],
   template: `
     <div class="max-w-5xl">

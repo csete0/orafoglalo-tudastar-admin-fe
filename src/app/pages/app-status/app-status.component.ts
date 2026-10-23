@@ -3,7 +3,6 @@ import { AppStatusService, AppStatusResult } from '../../services/app-status/app
 
 @Component({
   selector: 'app-app-status',
-  standalone: true,
   templateUrl: './app-status.component.html',
   styleUrl: './app-status.component.css',
 })

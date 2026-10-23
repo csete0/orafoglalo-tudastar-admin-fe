@@ -6,7 +6,6 @@ const PAGE_SIZE = 50;
 
 @Component({
   selector: 'app-audit-log',
-  standalone: true,
   imports: [FormsModule],
   templateUrl: './audit-log.component.html',
   styleUrl: './audit-log.component.css',

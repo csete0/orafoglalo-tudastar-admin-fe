@@ -28,7 +28,6 @@ const DAY_LABELS = ['1. nap', '2. nap', '3. nap', '4. nap', '5. nap', '6. nap', 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-probaerettsegi',
-  standalone: true,
   imports: [DatePipe, DecimalPipe, FormsModule, LocalSpinnerComponent],
   template: `
     <div class="max-w-6xl">

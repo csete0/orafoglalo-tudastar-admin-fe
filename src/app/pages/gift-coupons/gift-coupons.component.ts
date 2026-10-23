@@ -6,7 +6,6 @@ const PAGE_SIZE = 50;
 
 @Component({
   selector: 'app-gift-coupons',
-  standalone: true,
   imports: [FormsModule],
   templateUrl: './gift-coupons.component.html',
   styleUrl: './gift-coupons.component.css',

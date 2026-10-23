@@ -18,7 +18,6 @@ import {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-intezmenyek',
-  standalone: true,
   imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
   template: `
     <div class="max-w-5xl">

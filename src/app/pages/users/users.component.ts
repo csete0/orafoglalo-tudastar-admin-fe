@@ -7,7 +7,6 @@ const PAGE_SIZE = 50;
 
 @Component({
   selector: 'app-users',
-  standalone: true,
   imports: [FormsModule, RouterLink],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css',

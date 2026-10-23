@@ -9,7 +9,6 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
 /** Git-adminisztráció (PATRICKS-FEJLESZTOMUHELY-BC-TERV.md 2.2, 4.): kvóták és tárolók (zár visszaélésnél, törlés). */
 @Component({
   selector: 'app-admin-git',
-  standalone: true,
   imports: [FormsModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
