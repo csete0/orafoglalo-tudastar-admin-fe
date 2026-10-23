@@ -1,10 +1,17 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe, KeyValuePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { Observable, finalize } from 'rxjs';
 import { AdminTeamService } from '../../services/admin/admin-team.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-import { AdminTeamDetail, AdminTeamRow, SYNC_LABELS } from '../../models/team.model';
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
+import { latestValue } from '../../shared/resource/latest-value';
+import { reportErrors } from '../../shared/resource/report-errors';
+import { AdminTeamRow, SYNC_LABELS } from '../../models/team.model';
+
+const ACTION_ERROR = 'A művelet nem sikerült.';
+const toMessage = (err: unknown) => extractErrorMessage(err, ACTION_ERROR);
 
 /** Vizsgaremek-csapatok (PATRICKS-FEJLESZTOMUHELY-BC-TERV.md 3.): keresés, tükrözési hibák, újrapróbálás, leválasztás. */
 @Component({
@@ -64,49 +71,63 @@ import { AdminTeamDetail, AdminTeamRow, SYNC_LABELS } from '../../models/team.mo
     </div>
   `,
 })
-export class AdminCsapatokComponent implements OnInit {
+export class AdminCsapatokComponent {
   private readonly api = inject(AdminTeamService);
   private readonly confirm = inject(ConfirmService);
-  readonly rows = signal<AdminTeamRow[]>([]);
-  readonly detail = signal<AdminTeamDetail | null>(null);
   readonly query = signal('');
   readonly problems = signal(false);
-  readonly busy = signal(false);
+  /** Egy közös hibasor: minden betöltés és művelet induláskor törli, hibánál a sajátját írja ki. */
   readonly error = signal<string | null>(null);
 
-  ngOnInit(): void { void this.load(); }
+  /** A keresés kérése: minden keresés új objektum, így ugyanarra a szűrésre is újratölt. */
+  private readonly searchRequest = signal({ q: '', problems: false });
+  private readonly rowsResource = rxResource({
+    params: () => this.searchRequest(),
+    stream: ({ params }) => reportErrors(this.api.search(params.q, params.problems), this.error, toMessage),
+  });
+  /** Keresés közben és hiba után a korábbi lista marad. */
+  private readonly latestRows = latestValue(this.rowsResource);
+  readonly rows = computed(() => this.latestRows() ?? []);
+
+  /** A kinyitott csapat kérése (minden kattintás új objektum: ugyanarra is újratölt). */
+  private readonly detailRequest = signal<{ id: number } | undefined>(undefined);
+  private readonly detailResource = rxResource({
+    params: () => this.detailRequest(),
+    stream: ({ params }) => reportErrors(this.api.get(params.id), this.error, toMessage),
+  });
+  /** Betöltés közben és hiba után a korábbi részlet marad. */
+  private readonly latestDetail = latestValue(this.detailResource);
+  readonly detail = computed(() => this.latestDetail() ?? null);
+
+  private readonly actionBusy = signal(false);
+  readonly busy = computed(() => this.actionBusy() || this.rowsResource.isLoading() || this.detailResource.isLoading());
 
   syncLabel(status: string | null): string { return status ? (SYNC_LABELS[status] ?? status) : 'még nem futott'; }
 
-  async load(): Promise<void> {
-    await this.run(async () => this.rows.set(await firstValueFrom(this.api.search(this.query().trim(), this.problems()))));
+  load(): void {
+    this.searchRequest.set({ q: this.query().trim(), problems: this.problems() });
   }
 
-  async open(t: AdminTeamRow): Promise<void> {
-    await this.run(async () => this.detail.set(await firstValueFrom(this.api.get(t.id))));
+  open(t: AdminTeamRow): void {
+    this.detailRequest.set({ id: t.id });
   }
 
-  async retry(t: AdminTeamRow): Promise<void> {
-    if (await this.run(() => firstValueFrom(this.api.retryMirror(t.id)))) await this.load();
+  retry(t: AdminTeamRow): void {
+    this.run(this.api.retryMirror(t.id));
   }
 
   async unlink(t: AdminTeamRow): Promise<void> {
     const ok = await this.confirm.ask({ title: 'GitHub-kapcsolat leválasztása', message: `A(z) „${t.name}” csapat tükrözése leáll (${t.githubRepo}). A csapat újra összekapcsolhatja.`, danger: true });
-    if (ok && (await this.run(() => firstValueFrom(this.api.unlink(t.id))))) await this.load();
+    if (ok) this.run(this.api.unlink(t.id));
   }
 
-  /** Hibánál nem tölt újra (a szerver üzenete látsszon). */
-  private async run(action: () => Promise<unknown>): Promise<boolean> {
-    this.busy.set(true);
+  /** Sikernél újratölt; hibánál nem (a szerver üzenete látsszon). */
+  private run(action: Observable<void>): void {
+    this.actionBusy.set(true);
     this.error.set(null);
-    try {
-      await action();
-      return true;
-    } catch (e) {
-      this.error.set((e as { error?: { errorMessage?: string } })?.error?.errorMessage ?? 'A művelet nem sikerült.');
-      return false;
-    } finally {
-      this.busy.set(false);
-    }
+    action.pipe(finalize(() => this.actionBusy.set(false))).subscribe({
+      next: () => this.load(),
+      error: (err: unknown) => this.error.set(toMessage(err)),
+    });
   }
 }

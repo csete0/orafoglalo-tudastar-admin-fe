@@ -31,7 +31,7 @@ describe('AdminGitComponent', () => {
     expect(el.textContent).toContain('u12-p-bufe');
     expect(el.textContent).toContain('diak@x.hu');
     expect(el.textContent).toContain('projekt');
-    c.form.repoMaxMb = 60;
+    c.form.controls.repoMaxMb.setValue(60);
     await c.saveQuota();
     expect(api.updateQuota).toHaveBeenCalledWith(expect.objectContaining({ repoMaxMb: 60 }));
   });
@@ -42,7 +42,12 @@ describe('AdminGitComponent', () => {
     c.lockReason.set('visszaélés');
     await c.lock(repo);
     expect(api.lock).toHaveBeenCalledWith(7, 'visszaélés');
+    // A keresés rxResource: az újratöltés a következő változás-észleléskor indul.
+    fixture.detectChanges();
+    await fixture.whenStable();
     await c.remove(repo);
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(confirm.ask).toHaveBeenCalledWith(expect.objectContaining({ danger: true }));
     expect(api.remove).toHaveBeenCalledWith(7);
     expect(api.searchRepos).toHaveBeenCalledTimes(3);

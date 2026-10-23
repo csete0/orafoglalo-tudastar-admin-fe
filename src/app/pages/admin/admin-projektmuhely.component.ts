@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { Observable, catchError, forkJoin, throwError } from 'rxjs';
+import { forkJoin } from 'rxjs';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { TabBarComponent, TabItem } from '../../shared/tab-bar/tab-bar.component';
 import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 import { latestValue } from '../../shared/resource/latest-value';
+import { reportErrors } from '../../shared/resource/report-errors';
 import { ProjektmuhelyAttekintesComponent } from './projektmuhely/projektmuhely-attekintes.component';
 import { ProjektmuhelyTolcserComponent } from './projektmuhely/projektmuhely-tolcser.component';
 import { ProjektmuhelyKoltsegComponent } from './projektmuhely/projektmuhely-koltseg.component';
@@ -106,7 +107,7 @@ export class AdminProjektmuhelyComponent {
   private readonly dataResource = rxResource({
     params: () => this.days(),
     stream: ({ params: days }) =>
-      this.reportErrors(forkJoin({ overview: this.api.getOverview(days), costs: this.api.getCosts(days) }), () => LOAD_ERROR),
+      reportErrors(forkJoin({ overview: this.api.getOverview(days), costs: this.api.getCosts(days) }), this.error, () => LOAD_ERROR),
   });
   /** Betöltés közben és hiba után a korábbi adat marad. */
   private readonly data = latestValue(this.dataResource);
@@ -122,7 +123,7 @@ export class AdminProjektmuhelyComponent {
   private readonly funnelResource = rxResource({
     params: () => this.funnelRequest(),
     stream: ({ params: { slug, auto } }) =>
-      this.reportErrors(this.api.getFunnel(slug), () => (auto ? LOAD_ERROR : 'A tölcsért nem sikerült betölteni.')),
+      reportErrors(this.api.getFunnel(slug), this.error, () => (auto ? LOAD_ERROR : 'A tölcsért nem sikerült betölteni.')),
   });
   /** Projektváltás közben és hiba után a korábbi tölcsér marad. */
   private readonly latestFunnel = latestValue(this.funnelResource);
@@ -133,7 +134,7 @@ export class AdminProjektmuhelyComponent {
   private readonly technikumResource = rxResource({
     params: () => this.technikumDays(),
     stream: ({ params: days }) =>
-      this.reportErrors(this.api.getTechnikum(days), (err) => extractErrorMessage(err, 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.')),
+      reportErrors(this.api.getTechnikum(days), this.error, (err) => extractErrorMessage(err, 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.')),
   });
   private readonly latestTechnikum = latestValue(this.technikumResource);
   readonly technikum = computed(() => this.latestTechnikum() ?? null);
@@ -165,15 +166,5 @@ export class AdminProjektmuhelyComponent {
   private loadTechnikum(): void {
     if (this.technikumDays() === this.days()) this.technikumResource.reload();
     else this.technikumDays.set(this.days());
-  }
-
-  private reportErrors<T>(source: Observable<T>, message: (err: unknown) => string): Observable<T> {
-    this.error.set(null);
-    return source.pipe(
-      catchError((err: unknown) => {
-        this.error.set(message(err));
-        return throwError(() => err);
-      }),
-    );
   }
 }

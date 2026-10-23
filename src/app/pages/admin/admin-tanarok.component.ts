@@ -8,13 +8,14 @@ import { ToastService } from '../../shared/toast/toast.service';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { UtcPipe } from '../../shared/utc/utc.pipe';
+import { BytesPipe } from '../../shared/format/bytes.pipe';
 
 const BYTES_PER_MB = 1048576;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-tanarok',
-  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe],
+  imports: [DatePipe, FormsModule, IconComponent, LocalSpinnerComponent, UtcPipe, BytesPipe],
   template: `
     <div class="max-w-5xl">
       <h1 class="page-title">Tanárok</h1>
@@ -47,7 +48,7 @@ const BYTES_PER_MB = 1048576;
                   [class.text-text-muted]="!isOverQuota(teacher)">
                   {{ teacher.taskSetCount }}@if (teacher.maxTaskSets !== null) { / {{ teacher.maxTaskSets }}} feladatsor ·
                   {{ teacher.groupCount }} csoport ·
-                  {{ mb(teacher.storageUsedBytes) }}@if (teacher.maxStorageBytes !== null) { / {{ mb(teacher.maxStorageBytes) }}} MB tárhely ·
+                  {{ teacher.storageUsedBytes | bytes: 'MB' }}@if (teacher.maxStorageBytes !== null) { / {{ teacher.maxStorageBytes | bytes: 'MB' }}} MB tárhely ·
                   tag {{ teacher.createdAt | utc | date: 'yyyy.MM.dd' }} óta
                 </p>
                 <!-- A7: "jóváhagyott, de soha semmit nem csináló tanár" felismerése -
@@ -175,10 +176,6 @@ export class AdminTanarokComponent {
 
   constructor() {
     this.store.load();
-  }
-
-  mb(bytes: number): string {
-    return (bytes / BYTES_PER_MB).toFixed(1);
   }
 
   isOverQuota(teacher: TeacherProfileAdminDto): boolean {
