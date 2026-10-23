@@ -241,9 +241,12 @@ describe('AdminNovekedesComponent – teljes oldal', () => {
     await week(26);
     const first = req('cohorts', ['weeks', 26]);
     await week(12);
-    expect(first.cancelled).toBe(true);
-    req('cohorts', ['weeks', 12]).flush(COHORTS_12);
+    const second = req('cohorts', ['weeks', 12]);
+    second.flush(COHORTS_12);
+    const cancelled = first.cancelled;
+    if (!cancelled) first.flush(COHORTS_26); // a régi kódon a később érkező válasz felülírta a táblázatot
     await settle();
+    expect(cancelled).toBe(true);
     expect(rowTexts('growth-cohorts')[0]).toContain('2026.09.28.');
   });
 
