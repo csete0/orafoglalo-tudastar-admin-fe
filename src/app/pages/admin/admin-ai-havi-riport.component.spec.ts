@@ -37,7 +37,8 @@ function makeReport(overrides: Partial<AiSpendingMonthlyReportDto> = {}): AiSpen
 describe('AdminAiHaviRiportComponent', () => {
   let svc: { getMonthlyReport: ReturnType<typeof vi.fn>; downloadMonthlyReportCsv: ReturnType<typeof vi.fn> };
 
-  function create(report: AiSpendingMonthlyReportDto = makeReport()) {
+  /** A riport rxResource-ból jön: az első érték egy makrotask-kör után érkezik. */
+  async function create(report: AiSpendingMonthlyReportDto = makeReport()) {
     svc = {
       getMonthlyReport: vi.fn().mockReturnValue(of(report)),
       downloadMonthlyReportCsv: vi.fn().mockReturnValue(of(new Blob(['x'], { type: 'text/csv' }))),
@@ -48,6 +49,8 @@ describe('AdminAiHaviRiportComponent', () => {
     });
     const fixture = TestBed.createComponent(AdminAiHaviRiportComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     return fixture;
   }
 
@@ -55,26 +58,28 @@ describe('AdminAiHaviRiportComponent', () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it('az aktuális hónapot tölti be alapból, a választóban 12 hónap közül lehet választani', () => {
-    const fixture = create();
+  it('az aktuális hónapot tölti be alapból, a választóban 12 hónap közül lehet választani', async () => {
+    const fixture = await create();
     const current = monthKey(new Date());
     expect(svc.getMonthlyReport).toHaveBeenCalledWith(current);
     expect(fixture.componentInstance.monthOptions.length).toBe(12);
     expect(fixture.componentInstance.monthOptions[0].key).toBe(current);
   });
 
-  it('hónapváltáskor újra lekéri a riportot', () => {
-    const fixture = create();
+  it('hónapváltáskor újra lekéri a riportot', async () => {
+    const fixture = await create();
     const prev = fixture.componentInstance.monthOptions[1].key;
     const select: HTMLSelectElement = fixture.nativeElement.querySelector('[data-testid="month-select"]');
     select.value = prev;
     select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(svc.getMonthlyReport).toHaveBeenLastCalledWith(prev);
     expect(svc.getMonthlyReport).toHaveBeenCalledTimes(2);
   });
 
-  it('csempéket, intézményeket tanár/diák bontással, egyéb csoportokat és a nem besorolt részt mutatja', () => {
-    const el: HTMLElement = create().nativeElement;
+  it('csempéket, intézményeket tanár/diák bontással, egyéb csoportokat és a nem besorolt részt mutatja', async () => {
+    const el: HTMLElement = (await create()).nativeElement;
     expect(text(el.querySelector('[data-testid="report-tiles"]'))).toContain('$5.50');
     expect(text(el.querySelector('[data-testid="report-tiles"]'))).toContain('120');
 
@@ -91,8 +96,8 @@ describe('AdminAiHaviRiportComponent', () => {
     expect(text(el.querySelector('[data-testid="group-unattributed"]'))).toContain('Kvíz-karbantartás');
   });
 
-  it('a keresés ékezet-függetlenül névre és e-mailre szűr, az intézményt kinyitja', () => {
-    const fixture = create();
+  it('a keresés ékezet-függetlenül névre és e-mailre szűr, az intézményt kinyitja', async () => {
+    const fixture = await create();
     const el: HTMLElement = fixture.nativeElement;
     const input: HTMLInputElement = el.querySelector('[data-testid="report-search"]')!;
     input.value = 'nagy bela';
@@ -113,8 +118,8 @@ describe('AdminAiHaviRiportComponent', () => {
     expect(el.querySelector('[data-testid="search-empty"]')).not.toBeNull();
   });
 
-  it('költség szerint rendez, a gombbal megfordítható', () => {
-    const fixture = create();
+  it('költség szerint rendez, a gombbal megfordítható', async () => {
+    const fixture = await create();
     const c = fixture.componentInstance;
     expect(c.institutions().map((i) => i.schoolId)).toEqual([3, 4]);
     expect(c.institutions()[0].students.map((s) => s.name)).toEqual(['Nagy Béla', 'Kis Anna']);
@@ -125,28 +130,30 @@ describe('AdminAiHaviRiportComponent', () => {
     expect(c.institutions()[1].students.map((s) => s.name)).toEqual(['Kis Anna', 'Nagy Béla']);
   });
 
-  it('üres hónapnál üres-állapotot mutat', () => {
-    const el: HTMLElement = create(
+  it('üres hónapnál üres-állapotot mutat', async () => {
+    const el: HTMLElement = (await create(
       makeReport({ totalUsd: 0, requestCount: 0, attributedUsd: 0, unattributedUsd: 0, institutions: [], individualStudents: [], otherUsers: [], unattributed: [] }),
-    ).nativeElement;
+    )).nativeElement;
     expect(el.querySelector('[data-testid="report-empty"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="institution"]')).toBeNull();
   });
 
-  it('betöltési hibánál hibaüzenetet és Újra gombot mutat', () => {
+  it('betöltési hibánál hibaüzenetet és Újra gombot mutat', async () => {
     TestBed.configureTestingModule({
       imports: [AdminAiHaviRiportComponent],
       providers: [{ provide: AdminAiSpendingService, useValue: { getMonthlyReport: vi.fn().mockReturnValue(throwError(() => new Error('x'))) } }],
     });
     const fixture = TestBed.createComponent(AdminAiHaviRiportComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     const alert = fixture.nativeElement.querySelector('[role="alert"]');
     expect(text(alert)).toContain('A havi riport betöltése sikertelen.');
     expect(text(alert)).toContain('Újra');
   });
 
-  it('a CSV-t ai-koltes-YYYY-MM.csv néven tölti le', () => {
-    const fixture = create();
+  it('a CSV-t ai-koltes-YYYY-MM.csv néven tölti le', async () => {
+    const fixture = await create();
     let downloadName = '';
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
       downloadName = this.download;

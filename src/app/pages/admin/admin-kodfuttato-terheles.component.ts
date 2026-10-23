@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminJudge0LoadService } from '../../services/admin/admin-judge0-load.service';
 import {
   JUDGE0_KINDS,
@@ -12,6 +12,7 @@ import {
 } from '../../models/judge0-load.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { BarChartColumn, BarChartComponent } from '../../shared/bar-chart/bar-chart.component';
+import { latestValue } from '../../shared/resource/latest-value';
 
 type StatRow = { kind: string; stats: Judge0LoadStats };
 
@@ -167,18 +168,26 @@ function column(key: string, rows: StatRow[]): BarChartColumn {
     </div>
   `,
 })
-export class AdminKodfuttatoTerhelesComponent implements OnInit {
+export class AdminKodfuttatoTerhelesComponent {
   private readonly api = inject(AdminJudge0LoadService);
 
   readonly dayOptions = [7, 30, 90];
   readonly kinds = JUDGE0_KINDS;
 
   readonly days = signal(7);
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly report = signal<Judge0LoadReport | null>(null);
-  /** A kiválasztott nap („2026-10-18”); alapból a legutolsó nap adattal. */
-  readonly selectedDay = signal<string | null>(null);
+  private readonly reportResource = rxResource({
+    params: () => this.days(),
+    stream: ({ params: days }) => this.api.getReport(days),
+  });
+  readonly loading = this.reportResource.isLoading;
+  readonly error = computed(() =>
+    this.reportResource.status() === 'error' ? 'A kódfuttató terhelés-adatait nem sikerült betölteni.' : null,
+  );
+  /** Hiba után a korábbi jelentés marad (betöltés közben a spinner takarja). */
+  private readonly latestReport = latestValue(this.reportResource);
+  readonly report = computed(() => this.latestReport() ?? null);
+  /** A kiválasztott nap („2026-10-18”); minden új jelentésnél a legutolsó nap adattal. */
+  readonly selectedDay = linkedSignal(() => this.report()?.daily.at(-1)?.date ?? null);
 
   /** Legfrissebb nap elöl. */
   readonly dailyRows = computed(() => [...(this.report()?.daily ?? [])].sort((a, b) => b.date.localeCompare(a.date)));
@@ -204,27 +213,10 @@ export class AdminKodfuttatoTerhelesComponent implements OnInit {
     });
   });
 
-  async ngOnInit(): Promise<void> {
-    await this.load();
-  }
-
-  async setDays(days: number): Promise<void> {
-    this.days.set(days);
-    await this.load();
-  }
-
-  private async load(): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      const report = await firstValueFrom(this.api.getReport(this.days()));
-      this.report.set(report);
-      this.selectedDay.set(report.daily.length ? report.daily[report.daily.length - 1].date : null);
-    } catch {
-      this.error.set('A kódfuttató terhelés-adatait nem sikerült betölteni.');
-    } finally {
-      this.loading.set(false);
-    }
+  /** Az aktív időszak újrakattintása is újratölt (mint eddig). */
+  setDays(days: number): void {
+    if (days === this.days()) this.reportResource.reload();
+    else this.days.set(days);
   }
 
   dayLabel(date: string): string {

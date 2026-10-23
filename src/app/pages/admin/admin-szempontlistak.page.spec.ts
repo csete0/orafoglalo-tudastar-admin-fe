@@ -212,4 +212,15 @@ describe('AdminSzempontlistakComponent – teljes oldal', () => {
     expect(text(el.querySelector('[data-testid="rubric-problems"]'))).toBe('Az összeg nem egyezik.');
     expect(button('Jóváhagyom').disabled).toBe(true);
   });
+
+  it('gyors sorváltásnál az előző részlet-kérés lemondódik (a késve érkező régi válasz nem írja felül) — WP-C8, javulás', async () => {
+    await loaded();
+    await click(row(90));
+    const stale = http.expectOne(`${API}/9`);
+    await click(row(91));
+    http.expectOne(`${API}/10`).flush(detail(10));
+    await settle();
+    expect(stale.cancelled).toBe(true);
+    expect(text(detailCard())).toContain('Feladat 10');
+  });
 });

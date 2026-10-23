@@ -156,8 +156,10 @@ describe('AdminKodfuttatoTerhelesComponent', () => {
   });
 
   it('időszakváltáskor újratölt; ms → másodperc', async () => {
-    const { c, api } = await setup();
-    await c.setDays(30);
+    const { fixture, c, api } = await setup();
+    c.setDays(30);
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(api.getReport).toHaveBeenLastCalledWith(30);
     expect([fmtMs(null), fmtMs(1000), fmtMs(2500)]).toEqual(['–', '1 s', '2,5 s']);
   });

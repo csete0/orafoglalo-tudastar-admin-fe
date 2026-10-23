@@ -121,4 +121,15 @@ describe('AdminKodfuttatoTerhelesComponent – betöltés és időszak', () => {
     expect(errorText()).toBe('A kódfuttató terhelés-adatait nem sikerült betölteni.');
     expect(el.querySelector('.border-l-4')).toBeNull();
   });
+
+  it('gyors időszakváltásnál az előző kérés lemondódik — WP-C8, javulás', async () => {
+    await loaded();
+    await click(dayButton(30));
+    const stale = reportReq(30);
+    await click(dayButton(90));
+    reportReq(90).flush(report(90, 'Kilencven nap', ['2026-10-18']));
+    await settle();
+    expect(stale.cancelled).toBe(true);
+    expect(heading()).toBe('Kilencven nap');
+  });
 });

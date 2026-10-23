@@ -263,4 +263,16 @@ describe('AdminGradeDisputesComponent – teljes lista', () => {
     expect(toastDanger).toHaveBeenCalledWith('A fájl nem tölthető le.');
     vi.restoreAllMocks();
   });
+
+  it('gyors szűrőváltásnál az előző kérés lemondódik — WP-C8, javulás', async () => {
+    await loaded();
+    await click(button('Összes'));
+    const stale = listReq(false, 1);
+    await click(button('Kód / SQL'));
+    listReq(false, 1, 'code').flush({ items: [D2], totalCount: 1 });
+    await settle();
+    expect(stale.cancelled).toBe(true);
+    expect(rows().length).toBe(1);
+    expect(text(rows()[0])).toContain('SQL');
+  });
 });

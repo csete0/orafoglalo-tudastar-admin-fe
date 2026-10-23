@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminGrowthService } from '../../services/admin/admin-growth.service';
 import { ExamOutcomeQuote, ExamOutcomeSummary, PUBLIC_MIN_COUNT } from '../../models/exam-outcomes.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { latestValue } from '../../shared/resource/latest-value';
 
 const GRADE_NAMES = ['elégtelen', 'elégséges', 'közepes', 'jó', 'jeles'];
 
@@ -117,7 +119,7 @@ const GRADE_NAMES = ['elégtelen', 'elégséges', 'közepes', 'jó', 'jeles'];
     </div>
   `,
 })
-export class AdminErettsegiEredmenyekComponent implements OnInit {
+export class AdminErettsegiEredmenyekComponent {
   private readonly api = inject(AdminGrowthService);
 
   readonly gradeNames = GRADE_NAMES;
@@ -127,39 +129,51 @@ export class AdminErettsegiEredmenyekComponent implements OnInit {
     { id: 'approved', label: 'Jóváhagyott' },
     { id: 'rejected', label: 'Elutasított' },
   ];
-  readonly summary = signal<ExamOutcomeSummary | null>(null);
-  readonly quotes = signal<ExamOutcomeQuote[]>([]);
-  readonly quoteStatus = signal('pending');
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
+  /** A kért év (null: a szerver az aktuálisat adja). */
+  private readonly year = signal<number | null>(null);
+  private readonly summaryResource = rxResource({
+    params: () => ({ year: this.year() }),
+    stream: ({ params }) => this.api.getOutcomeSummary(params.year),
+  });
+  /** Évváltás közben és hiba után a korábbi összesítő marad. */
+  private readonly latestSummary = latestValue(this.summaryResource);
+  readonly summary = computed(() => this.latestSummary() ?? null);
+  /** A spinner csak az első összesítőig látszik (évváltáskor a régi marad a válaszig). */
+  readonly loading = computed(() => !this.summary() && this.summaryResource.isLoading());
 
-  ngOnInit(): void {
-    this.load(null);
-    this.loadQuotes('pending');
-  }
+  /** Az idézet-szűrő kérése (minden kattintás új objektum: ugyanarra az állapotra is újratölt). */
+  private readonly quoteRequest = signal({ status: 'pending' });
+  readonly quoteStatus = computed(() => this.quoteRequest().status);
+  private readonly quotesResource = rxResource({
+    params: () => this.quoteRequest(),
+    stream: ({ params }) => this.api.getQuotes(params.status),
+  });
+  /** Szűrőváltás közben és hiba után a korábbi lista marad; a moderálás helyben frissíti. */
+  private readonly latestQuotes = latestValue(this.quotesResource);
+  readonly quotes = computed(() => this.latestQuotes() ?? []);
 
-  load(year: number | null): void {
-    this.api.getOutcomeSummary(year).subscribe({
-      next: (s) => {
-        this.summary.set(s);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Az érettségi-eredmények betöltése nem sikerült.');
-        this.loading.set(false);
-      },
-    });
+  /** A moderálás és a CSV-letöltés hibája; a következő ilyen művelet törli. */
+  private readonly actionError = signal<string | null>(null);
+  readonly error = computed(() => {
+    if (this.actionError()) return this.actionError();
+    if (this.summaryResource.status() === 'error') return 'Az érettségi-eredmények betöltése nem sikerült.';
+    if (this.quotesResource.status() === 'error') return 'Az idézetek betöltése nem sikerült.';
+    return null;
+  });
+
+  load(year: number): void {
+    this.year.set(year);
   }
 
   loadQuotes(status: string): void {
-    this.quoteStatus.set(status);
-    this.api.getQuotes(status).subscribe({ next: (q) => this.quotes.set(q), error: () => this.error.set('Az idézetek betöltése nem sikerült.') });
+    this.quoteRequest.set({ status });
   }
 
   moderate(q: ExamOutcomeQuote, approved: boolean): void {
+    this.actionError.set(null);
     this.api.setQuoteStatus(q.id, approved).subscribe({
-      next: () => this.quotes.update((list) => list.filter((x) => x.id !== q.id)),
-      error: () => this.error.set('A moderálás nem sikerült.'),
+      next: () => this.latestQuotes.update((list) => list?.filter((x) => x.id !== q.id)),
+      error: () => this.actionError.set('A moderálás nem sikerült.'),
     });
   }
 
@@ -169,6 +183,7 @@ export class AdminErettsegiEredmenyekComponent implements OnInit {
   }
 
   download(year: number): void {
+    this.actionError.set(null);
     this.api.exportCsv(year).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
@@ -178,7 +193,7 @@ export class AdminErettsegiEredmenyekComponent implements OnInit {
         a.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.error.set('A CSV letöltése nem sikerült.'),
+      error: () => this.actionError.set('A CSV letöltése nem sikerült.'),
     });
   }
 }

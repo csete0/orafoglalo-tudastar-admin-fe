@@ -264,4 +264,19 @@ describe('AdminGitComponent – teljes oldal', () => {
     expect(errorText()).toBe('A művelet nem sikerült.');
     http.expectNone((r) => r.url === `${API}/repos`);
   });
+
+  it('gyors ismételt keresésnél (Enter) az előző kérés lemondódik — WP-C8, javulás', async () => {
+    await loaded();
+    await type(searchInput(), 'a');
+    searchInput().dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+    await settle();
+    const stale = reposReq('a');
+    await type(searchInput(), 'ab');
+    searchInput().dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+    await settle();
+    reposReq('ab').flush([R2]);
+    await settle();
+    expect(stale.cancelled).toBe(true);
+    expect(rows().length).toBe(1);
+  });
 });

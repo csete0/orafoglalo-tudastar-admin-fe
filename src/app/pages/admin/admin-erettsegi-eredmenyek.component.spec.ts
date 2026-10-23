@@ -14,7 +14,8 @@ const summary: ExamOutcomeSummary = {
 };
 
 describe('AdminErettsegiEredmenyekComponent (Érettségi-eredmények)', () => {
-  function setup() {
+  /** Az összesítő és az idézetek rxResource-ból jönnek: az első érték egy makrotask-kör után érkezik. */
+  async function setup() {
     const api = {
       getOutcomeSummary: vi.fn(() => of(summary)),
       getQuotes: vi.fn(() => of([{ id: 3, year: 2027, level: 'emelt', percent: 68, grade: 4, quote: 'Megérte!', status: 'pending', updatedAt: '2027-07-01T10:00:00' }])),
@@ -24,19 +25,21 @@ describe('AdminErettsegiEredmenyekComponent (Érettségi-eredmények)', () => {
     TestBed.configureTestingModule({ imports: [AdminErettsegiEredmenyekComponent], providers: [{ provide: AdminGrowthService, useValue: api }] });
     const fixture = TestBed.createComponent(AdminErettsegiEredmenyekComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     return { fixture, el: fixture.nativeElement as HTMLElement, api };
   }
 
-  it('összesítő szintenként, kis minta figyelmeztetés, pontosság', () => {
-    const { el } = setup();
+  it('összesítő szintenként, kis minta figyelmeztetés, pontosság', async () => {
+    const { el } = await setup();
     expect(el.querySelector('[data-testid="level-kozep"]')?.textContent).toMatch(/átlag 71[.,]5%/); // a teszt-környezet nem magyar locale-lal fut
     expect(el.querySelector('[data-testid="small-sample"]')?.textContent).toContain('Még csak 7 eredmény');
     expect(el.querySelector('[data-testid="accuracy"]')?.textContent).toMatch(/6[.,]2 százalékpont/);
     expect(el.querySelector('[data-testid="accuracy"]')?.textContent).toContain('60%');
   });
 
-  it('idézet jóváhagyása: a lista frissül', () => {
-    const { fixture, el, api } = setup();
+  it('idézet jóváhagyása: a lista frissül', async () => {
+    const { fixture, el, api } = await setup();
     expect(el.querySelector('[data-testid="quotes"]')?.textContent).toContain('Megérte!');
     [...el.querySelectorAll('button')].find((b) => b.textContent!.trim() === 'Jóváhagyom')!.click();
     fixture.detectChanges();

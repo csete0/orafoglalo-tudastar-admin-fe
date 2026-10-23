@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminAiSpendingService } from '../../services/admin/admin-ai-spending.service';
 import {
   AiSpendingMonthlyReportDto,
@@ -208,7 +209,7 @@ export function fmtUsd(v: number): string {
     </ng-template>
   `,
 })
-export class AdminAiHaviRiportComponent implements OnInit {
+export class AdminAiHaviRiportComponent {
   private readonly svc = inject(AdminAiSpendingService);
 
   readonly monthOptions = Array.from({ length: MONTHS_BACK }, (_, i) => {
@@ -218,9 +219,20 @@ export class AdminAiHaviRiportComponent implements OnInit {
   });
 
   readonly month = signal(this.monthOptions[0].key);
-  readonly report = signal<AiSpendingMonthlyReportDto | null>(null);
-  readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
+  /** Hónapváltáskor a korábbi kérés lemondódik; betöltés közben és hiba után nincs riport. */
+  private readonly reportResource = rxResource({
+    params: () => this.month(),
+    stream: ({ params: month }) => this.svc.getMonthlyReport(month),
+  });
+  readonly report = computed<AiSpendingMonthlyReportDto | null>(() =>
+    this.reportResource.hasValue() ? this.reportResource.value() : null,
+  );
+  readonly loading = this.reportResource.isLoading;
+  /** A CSV-letöltés hibája; a következő betöltés törli. */
+  private readonly csvError = signal<string | null>(null);
+  readonly error = computed(
+    () => this.csvError() ?? (this.reportResource.status() === 'error' ? 'A havi riport betöltése sikertelen.' : null),
+  );
   readonly downloading = signal(false);
   readonly query = signal('');
   readonly sortDir = signal<SortDir>('desc');
@@ -273,37 +285,20 @@ export class AdminAiHaviRiportComponent implements OnInit {
   readonly sourceLabel = sourceLabel;
   readonly sourceColor = sourceColor;
 
-  ngOnInit(): void {
-    this.load();
-  }
-
   setMonth(month: string): void {
     if (month === this.month()) return;
+    this.csvError.set(null);
     this.month.set(month);
-    this.load();
   }
 
   toggleSort(): void {
     this.sortDir.update((d) => (d === 'desc' ? 'asc' : 'desc'));
   }
 
+  /** Az „Újra” gomb: ugyanazt a hónapot tölti újra. */
   load(): void {
-    const month = this.month();
-    this.loading.set(true);
-    this.error.set(null);
-    this.svc.getMonthlyReport(month).subscribe({
-      next: (data) => {
-        if (month !== this.month()) return;
-        this.report.set(data);
-        this.loading.set(false);
-      },
-      error: () => {
-        if (month !== this.month()) return;
-        this.report.set(null);
-        this.error.set('A havi riport betöltése sikertelen.');
-        this.loading.set(false);
-      },
-    });
+    this.csvError.set(null);
+    this.reportResource.reload();
   }
 
   downloadCsv(): void {
@@ -320,7 +315,7 @@ export class AdminAiHaviRiportComponent implements OnInit {
         this.downloading.set(false);
       },
       error: () => {
-        this.error.set('A CSV letöltése nem sikerült.');
+        this.csvError.set('A CSV letöltése nem sikerült.');
         this.downloading.set(false);
       },
     });

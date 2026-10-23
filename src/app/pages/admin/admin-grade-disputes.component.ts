@@ -1,10 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminGradeDisputeService } from '../../services/admin/admin-grade-dispute.service';
 import { GradeDispute, GradeDisputeFile, GradeDisputeItem, GradeItemCorrection } from '../../models/grade-dispute.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { PagerComponent } from '../../shared/pager/pager.component';
+import { latestValue } from '../../shared/resource/latest-value';
 import { ToastService } from '../../shared/toast/toast.service';
+
+type DisputeKind = 'files' | 'code' | null;
 
 /**
  * „Szerintem hibás az értékelés” várólista (PATRICKS-TELJES-VIZSGA-TERV.md, H4): a diák indoka, a beadott fájlok (letölthetők),
@@ -14,7 +19,7 @@ import { ToastService } from '../../shared/toast/toast.service';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-grade-disputes',
-  imports: [DatePipe, FormsModule, LocalSpinnerComponent],
+  imports: [DatePipe, FormsModule, LocalSpinnerComponent, PagerComponent],
   template: `
     <div class="flex gap-2 mb-6 text-sm flex-wrap">
       @for (option of filterOptions; track option.value) {
@@ -130,30 +135,35 @@ import { ToastService } from '../../shared/toast/toast.service';
       </ul>
 
       @if (totalCount() > pageSize) {
-        <div class="flex items-center gap-3 mt-4 text-sm">
-          <button (click)="prevPage()" [disabled]="page() === 1" class="btn btn-ghost !px-3 !py-1.5">← Előző</button>
-          <span>{{ page() }} / {{ totalPages() }}</span>
-          <button (click)="nextPage()" [disabled]="page() >= totalPages()" class="btn btn-ghost !px-3 !py-1.5">Következő →</button>
-        </div>
+        <div class="flex items-center gap-3 mt-4 text-sm" app-pager variant="ghost" [page]="page()" [pageSize]="pageSize" [total]="totalCount()"
+          (pageChange)="goToPage($event)"></div>
       }
     }
   `,
 })
-export class AdminGradeDisputesComponent implements OnInit {
+export class AdminGradeDisputesComponent {
   private readonly svc = inject(AdminGradeDisputeService);
   private readonly toast = inject(ToastService);
 
   readonly pageSize = 20;
-  readonly disputes = signal<GradeDispute[]>([]);
-  readonly loading = signal(false);
-  readonly pending = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly onlyOpen = signal(true);
+  /** A lista kérése: minden szűrő-kattintás új objektum, így ugyanarra a szűrőre is újratölt (az 1. oldalról). */
+  private readonly query = signal<{ onlyOpen: boolean; kind: DisputeKind; page: number }>({ onlyOpen: true, kind: null, page: 1 });
+  readonly onlyOpen = computed(() => this.query().onlyOpen);
   /** Fajta-szűrő: a gyakorló kód-értékelés kifogásai ugyanerre a várólistára jönnek (D9). */
-  readonly kind = signal<'files' | 'code' | null>(null);
-  readonly page = signal(1);
-  readonly totalCount = signal(0);
-  readonly totalPages = () => Math.max(1, Math.ceil(this.totalCount() / this.pageSize));
+  readonly kind = computed(() => this.query().kind);
+  readonly page = computed(() => this.query().page);
+
+  private readonly listResource = rxResource({
+    params: () => this.query(),
+    stream: ({ params: q }) => this.svc.list(q.onlyOpen, q.page, this.pageSize, q.kind),
+  });
+  /** Betöltés közben és hiba után a korábbi lista marad. */
+  private readonly list = latestValue(this.listResource);
+  readonly disputes = computed(() => this.list()?.items ?? []);
+  readonly totalCount = computed(() => this.list()?.totalCount ?? 0);
+  readonly loading = this.listResource.isLoading;
+  readonly error = computed(() => (this.listResource.status() === 'error' ? 'Nem sikerült betölteni a kifogásokat.' : null));
+  readonly pending = signal(false);
   readonly answers: Record<number, string> = {};
   /** Kifogásonként a tételek javított értéke (csak a módosítottak mennek el). */
   readonly corrections: Record<number, Record<number, GradeItemCorrection>> = {};
@@ -163,34 +173,22 @@ export class AdminGradeDisputesComponent implements OnInit {
     { value: false, label: 'Összes' },
   ];
 
-  readonly kindOptions: { value: 'files' | 'code' | null; label: string }[] = [
+  readonly kindOptions: { value: DisputeKind; label: string }[] = [
     { value: null, label: 'Minden fajta' },
     { value: 'files', label: 'Irodai / weblap' },
     { value: 'code', label: 'Kód / SQL' },
   ];
 
-  ngOnInit(): void {
-    this.load();
+  setKind(kind: DisputeKind): void {
+    this.query.update((q) => ({ ...q, kind, page: 1 }));
   }
 
-  setKind(value: 'files' | 'code' | null): void {
-    this.kind.set(value);
-    this.page.set(1);
-    this.load();
+  setOnlyOpen(onlyOpen: boolean): void {
+    this.query.update((q) => ({ ...q, onlyOpen, page: 1 }));
   }
 
-  setOnlyOpen(value: boolean): void {
-    this.onlyOpen.set(value);
-    this.page.set(1);
-    this.load();
-  }
-
-  prevPage(): void {
-    if (this.page() > 1) { this.page.update(p => p - 1); this.load(); }
-  }
-
-  nextPage(): void {
-    if (this.page() < this.totalPages()) { this.page.update(p => p + 1); this.load(); }
+  goToPage(page: number): void {
+    this.query.update((q) => ({ ...q, page }));
   }
 
   lost(d: GradeDispute): GradeDisputeItem[] {
@@ -225,22 +223,6 @@ export class AdminGradeDisputesComponent implements OnInit {
     return Math.max(1, Math.round(bytes / 1024));
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.svc.list(this.onlyOpen(), this.page(), this.pageSize, this.kind()).subscribe({
-      next: res => {
-        this.disputes.set(res.items);
-        this.totalCount.set(res.totalCount);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Nem sikerült betölteni a kifogásokat.');
-        this.loading.set(false);
-      },
-    });
-  }
-
   resolve(d: GradeDispute): void {
     this.pending.set(true);
     const corrections = this.changedCorrections(d);
@@ -250,7 +232,7 @@ export class AdminGradeDisputesComponent implements OnInit {
         this.toast.success(corrections.length
           ? `Lezárva - ${corrections.length} tétel javítva, a diák értesítést kapott.`
           : 'Lezárva - a diák értesítést kapott.');
-        this.load();
+        this.listResource.reload();
       },
       error: () => { this.pending.set(false); this.toast.danger('Hiba történt.'); },
     });

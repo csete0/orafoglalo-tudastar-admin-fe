@@ -212,4 +212,15 @@ describe('AdminCsapatokComponent – teljes oldal', () => {
     expect(errorText()).toBe('Túl sok kérés.');
     expect(rows().length).toBe(3);
   });
+
+  it('gyors csapatváltásnál az előző részlet-kérés lemondódik — WP-C8, javulás', async () => {
+    await loaded();
+    await click(button('Büfé'));
+    const stale = http.expectOne(`${API}/5`);
+    await click(button('Mozi'));
+    http.expectOne(`${API}/6`).flush({ team: T2, members: [], branches: {} });
+    await settle();
+    expect(stale.cancelled).toBe(true);
+    expect(text(detail()!)).toContain('Mozi');
+  });
 });

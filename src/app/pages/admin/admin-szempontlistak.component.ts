@@ -1,14 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminRubricsService } from '../../services/admin/admin-rubrics.service';
 import {
   LEVEL_LABELS,
   RUBRIC_STATUS_LABELS,
-  RubricDetail,
   RubricItem,
   RubricTaskRow,
   TASK_TYPE_LABELS,
 } from '../../models/rubrics.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
+import { latestValue } from '../../shared/resource/latest-value';
+import { reportErrors } from '../../shared/resource/report-errors';
 
 /** A részletnézet blokkjai: szakaszonként az önálló szempontok és az állításcsoportok (állítások + küszöbök). */
 export interface RubricBlock {
@@ -149,54 +152,46 @@ export function toBlocks(items: RubricItem[]): RubricBlock[] {
     </div>
   `,
 })
-export class AdminSzempontlistakComponent implements OnInit {
+export class AdminSzempontlistakComponent {
   private readonly api = inject(AdminRubricsService);
 
   readonly levels = LEVEL_LABELS;
   readonly types = TASK_TYPE_LABELS;
   readonly statusLabels = RUBRIC_STATUS_LABELS;
-  readonly rows = signal<RubricTaskRow[]>([]);
+  /** Egy közös hibasor: a betöltések és a bírálat induláskor törlik, hibánál a sajátjukat írják ki. */
+  readonly error = signal<string | null>(null);
+
+  private readonly rowsResource = rxResource({
+    stream: () => reportErrors(this.api.listOfficial(), this.error, () => 'A szempontlisták betöltése nem sikerült.'),
+  });
+  /** A betöltött lista; a bírálat helyben frissíti a sor állapotát. */
+  private readonly latestRows = latestValue(this.rowsResource);
+  readonly rows = computed(() => this.latestRows() ?? []);
+  readonly loading = this.rowsResource.isLoading;
   readonly onlyPending = signal(false);
-  readonly selectedId = signal<number | null>(null);
-  readonly detail = signal<RubricDetail | null>(null);
-  readonly loading = signal(true);
-  readonly detailLoading = signal(false);
+
+  /** A kinyitott szempontlista kérése (minden kattintás új objektum: ugyanarra a sorra is újratölt). */
+  private readonly detailRequest = signal<{ id: number } | undefined>(undefined);
+  readonly selectedId = computed(() => this.detailRequest()?.id ?? null);
+  private readonly detailResource = rxResource({
+    params: () => this.detailRequest(),
+    stream: ({ params }) => reportErrors(this.api.get(params.id), this.error, () => 'A szempontlista betöltése nem sikerült.'),
+  });
+  /** Betöltés közben és hiba után a korábbi részlet marad; a bírálat helyben frissíti. */
+  private readonly latestDetail = latestValue(this.detailResource);
+  readonly detail = computed(() => this.latestDetail() ?? null);
+  readonly detailLoading = this.detailResource.isLoading;
   readonly busy = signal(false);
   readonly note = signal('');
-  readonly error = signal<string | null>(null);
 
   readonly approvedCount = computed(() => this.rows().filter((r) => r.hasApproved).length);
   readonly visibleRows = computed(() => (this.onlyPending() ? this.rows().filter((r) => !r.hasApproved) : this.rows()));
   readonly blocks = computed(() => toBlocks(this.detail()?.items ?? []));
 
-  ngOnInit(): void {
-    this.api.listOfficial().subscribe({
-      next: (rows) => {
-        this.rows.set(rows);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('A szempontlisták betöltése nem sikerült.');
-        this.loading.set(false);
-      },
-    });
-  }
-
   open(row: RubricTaskRow): void {
     if (!row.rubricId) return;
-    this.selectedId.set(row.rubricId);
     this.note.set('');
-    this.detailLoading.set(true);
-    this.api.get(row.rubricId).subscribe({
-      next: (d) => {
-        this.detail.set(d);
-        this.detailLoading.set(false);
-      },
-      error: () => {
-        this.error.set('A szempontlista betöltése nem sikerült.');
-        this.detailLoading.set(false);
-      },
-    });
+    this.detailRequest.set({ id: row.rubricId });
   }
 
   review(approve: boolean): void {
@@ -206,13 +201,13 @@ export class AdminSzempontlistakComponent implements OnInit {
     this.error.set(null);
     this.api.review(d.id, approve, this.note().trim() || null).subscribe({
       next: (updated) => {
-        this.detail.set(updated);
-        this.rows.update((rows) => rows.map((r) => (r.rubricId === updated.id
+        this.latestDetail.set(updated);
+        this.latestRows.update((rows) => rows?.map((r) => (r.rubricId === updated.id
           ? { ...r, status: updated.status, hasApproved: r.hasApproved || updated.status === 'approved' } : r)));
         this.busy.set(false);
       },
-      error: (e) => {
-        this.error.set(e?.error?.errorMessage ?? 'A művelet nem sikerült.');
+      error: (err: unknown) => {
+        this.error.set(extractErrorMessage(err, 'A művelet nem sikerült.'));
         this.busy.set(false);
       },
     });
