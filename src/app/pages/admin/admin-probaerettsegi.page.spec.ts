@@ -315,6 +315,19 @@ describe('AdminProbaerettsegiComponent – teljes oldal', () => {
     await flushStatus(4);
   });
 
+  it('gyors eseményváltás: az előző, még futó státusz-kérés lemondódik (a késve érkező régi válasz nem írhatja felül) – WP-C4 javulás', async () => {
+    await loaded();
+    eventButtons()[1].click();
+    await settle();
+    eventButtons()[0].click();
+    await settle();
+    expect(req('/7/status').cancelled).toBe(true);
+    expect(req('/7/leaderboard').cancelled).toBe(true);
+    await flushStatus(4, status({ started: 99 }));
+    expect(text()).toContain('Elkezdte 99');
+    expect(eventButtons()[0].className).toBe('btn btn-primary');
+  });
+
   it('élő frissítés: 60 mp-enként, csak az esemény hetében (kezdéstől az eredmény utáni napig); megszűnéskor leáll', async () => {
     await loaded();
     expect(liveTick).not.toBeNull();
