@@ -4,12 +4,6 @@
  * AiRequestLogs-ból (`code-practice` és `office-grading` gyakorló része).
  */
 
-/** Értékelés-típus: kód (Python stb.), SQL, irodai/weblapos fájl. */
-export type PracticeGradeKind = 'code' | 'sql' | 'files';
-
-/** Csomag (a TokenLimitService szintje szerint; az intézményi hely külön). */
-export type PracticeGradeTier = 'free' | 'standard' | 'premium' | 'institutional';
-
 export const PRACTICE_KIND_LABELS: Record<string, string> = {
   code: 'Kód',
   sql: 'SQL',

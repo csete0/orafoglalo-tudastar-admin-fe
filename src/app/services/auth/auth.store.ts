@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -30,6 +30,7 @@ const STORAGE_KEY = 'patricks-admin-session';
  */
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
+  private readonly http = inject(HttpClient);
   private readonly session = signal<StoredSession | null>(this.loadFromStorage());
 
   readonly isAuthenticated = computed(() => {
@@ -39,8 +40,6 @@ export class AuthStore {
 
   readonly displayName = computed(() => this.session()?.displayName ?? '');
   readonly email = computed(() => this.session()?.email ?? '');
-
-  constructor(private readonly http: HttpClient) {}
 
   getAccessToken(): string | null {
     const s = this.session();

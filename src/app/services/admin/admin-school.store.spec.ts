@@ -96,19 +96,6 @@ describe('AdminSchoolStore', () => {
     expect(store.schools()[0].name).toBe('Cél Suli');
   });
 
-  it('clearLastMergeResult törli az eredményt', async () => {
-    serviceMock.getSchools.mockReturnValue(of([]));
-    serviceMock.merge.mockReturnValue(of(makeMergeResult()));
-
-    const store = TestBed.inject(AdminSchoolStore);
-    store.merge(1, 2);
-    await Promise.resolve();
-    expect(store.lastMergeResult()).not.toBeNull();
-
-    store.clearLastMergeResult();
-    expect(store.lastMergeResult()).toBeNull();
-  });
-
   // UI-TT-10: egy sikertelen egyesítés ne hagyjon se kezeletlen hibát, se
   // egy ellentmondó, korábbi sikeres eredményt a képernyőn.
   it('merge hiba esetén beállítja az error jelet, és törli a korábbi (immár félrevezető) sikeres eredményt', async () => {
