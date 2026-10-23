@@ -9,7 +9,7 @@ import {
   sourceLabel,
 } from '../../models/ai-spending.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
-import { fmtUsd as fmtUsdBase } from './admin-gyakorlo-ertekelesek.component';
+import { formatUsd as fmtUsdBase } from '../../shared/format/number-utils';
 
 type SortDir = 'desc' | 'asc';
 
