@@ -1,4 +1,5 @@
-import { extractErrorMessage } from './extract-error-message.util';
+import { HttpErrorResponse } from '@angular/common/http';
+import { extractErrorMessage, isRecord } from './extract-error-message.util';
 
 describe('extractErrorMessage', () => {
   it('errorMessage alakú body esetén azt adja vissza', () => {
@@ -32,5 +33,40 @@ describe('extractErrorMessage', () => {
     expect(extractErrorMessage({ error: {} }, 'fallback szöveg')).toBe('fallback szöveg');
     expect(extractErrorMessage({}, 'fallback szöveg')).toBe('fallback szöveg');
     expect(extractErrorMessage(null, 'fallback szöveg')).toBe('fallback szöveg');
+  });
+
+  it('valódi HttpErrorResponse esetén is a body errorMessage-ét adja vissza', () => {
+    const err = new HttpErrorResponse({ status: 400, error: { errorMessage: 'Érvénytelen kód.' } });
+    expect(extractErrorMessage(err, 'fallback')).toBe('Érvénytelen kód.');
+  });
+
+  it('valódi 413-as HttpErrorResponse esetén a fájlméret-üzenetet adja vissza', () => {
+    const err = new HttpErrorResponse({ status: 413, error: '<html>413</html>' });
+    expect(extractErrorMessage(err, 'fallback')).toBe('A feltöltött fájl mérete meghaladja a megengedett korlátot.');
+  });
+
+  it('nem HTTP-hiba és nem objektum bemenet esetén a fallbacket adja vissza', () => {
+    expect(extractErrorMessage(undefined, 'fb')).toBe('fb');
+    expect(extractErrorMessage('valami szöveg', 'fb')).toBe('fb');
+    expect(extractErrorMessage(42, 'fb')).toBe('fb');
+    expect(extractErrorMessage(new Error('net'), 'fb')).toBe('fb');
+    expect(extractErrorMessage({ error: 'szöveges body' }, 'fb')).toBe('fb');
+    expect(extractErrorMessage({ error: { errorMessage: '   ' } }, 'fb')).toBe('fb');
+    expect(extractErrorMessage({ error: { errorMessage: 5, errors: [1, null, ''] } }, 'fb')).toBe('fb');
+  });
+
+  it('a fallback alapértéke "Hiba történt."', () => {
+    expect(extractErrorMessage(null)).toBe('Hiba történt.');
+  });
+});
+
+describe('isRecord', () => {
+  it('csak nem-null objektumra igaz', () => {
+    expect(isRecord({})).toBe(true);
+    expect(isRecord([])).toBe(true);
+    expect(isRecord(null)).toBe(false);
+    expect(isRecord(undefined)).toBe(false);
+    expect(isRecord('x')).toBe(false);
+    expect(isRecord(1)).toBe(false);
   });
 });

@@ -30,7 +30,7 @@ const GRADE_NAMES = ['elégtelen', 'elégséges', 'közepes', 'jó', 'jeles'];
       } @else if (summary(); as s) {
         <div class="flex items-center gap-3 flex-wrap mb-4">
           <label class="text-sm">Év
-            <select class="ml-2 border border-border-default rounded px-2 py-1 bg-bg-element" (change)="load(+$any($event.target).value)">
+            <select class="ml-2 border border-border-default rounded px-2 py-1 bg-bg-element" #yearSelect (change)="load(+yearSelect.value)">
               @for (y of years(s); track y) { <option [value]="y" [selected]="y === s.year">{{ y }}</option> }
             </select>
           </label>

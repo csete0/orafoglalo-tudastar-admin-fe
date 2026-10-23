@@ -23,16 +23,9 @@ import { AdminAiHaviRiportComponent } from './admin-ai-havi-riport.component';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 
 type Tab = 'attekintes' | 'havi-riport' | 'naplo' | 'karbantartas' | 'eredmenyek' | 'automatizmus';
-
-function extractErrorMessage(err: any, fallback: string): string {
-  const body = err?.error;
-  if (typeof body?.errorMessage === 'string' && body.errorMessage.trim()) {
-    return body.errorMessage;
-  }
-  return fallback;
-}
 
 interface ChartBar {
   date: string;

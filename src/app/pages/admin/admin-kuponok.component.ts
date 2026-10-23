@@ -6,14 +6,7 @@ import { CouponAdminDto, CouponCreateRequest, SubscriptionTypeOption } from '../
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-
-function extractErrorMessage(err: any, fallback: string): string {
-  const body = err?.error;
-  if (typeof body?.errorMessage === 'string' && body.errorMessage.trim()) {
-    return body.errorMessage;
-  }
-  return fallback;
-}
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 
 /**
  * B3: kuponkódok kezelése (platform-admin). A kedvezmény két formája - százalék VAGY fix

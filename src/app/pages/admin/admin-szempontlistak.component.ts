@@ -132,7 +132,7 @@ export function toBlocks(items: RubricItem[]): RubricBlock[] {
                 <div class="mt-6 pt-4 border-t border-border-default flex flex-col gap-2">
                   <label class="text-sm">Megjegyzés (elutasításnál kötelező)
                     <textarea class="w-full mt-1 border border-border-default rounded p-2 bg-bg-element text-sm" rows="2" maxlength="1000"
-                      [value]="note()" (input)="note.set($any($event.target).value)"></textarea>
+                      #noteInput [value]="note()" (input)="note.set(noteInput.value)"></textarea>
                   </label>
                   <div class="flex gap-3">
                     <button type="button" class="btn btn-primary !py-1.5" [disabled]="busy() || d.problems.length > 0" (click)="review(true)">Jóváhagyom</button>

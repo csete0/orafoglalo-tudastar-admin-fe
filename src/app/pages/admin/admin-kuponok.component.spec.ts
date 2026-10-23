@@ -205,7 +205,6 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
   });
 
   it('betöltési hiba esetén hibaüzenet jelenik meg', () => {
-    svcMock = {} as any;
     TestBed.configureTestingModule({
       imports: [AdminKuponokComponent],
       providers: [

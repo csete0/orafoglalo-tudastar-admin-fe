@@ -12,6 +12,7 @@ import {
 } from '../../models/projektmuhely.model';
 import { sourceColor, sourceLabel } from '../../models/ai-spending.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 
 type Tab = 'attekintes' | 'tolcser' | 'koltseg' | 'technikum';
 
@@ -125,7 +126,7 @@ const PAD_BOTTOM = 22;
           @case ('tolcser') {
             <div class="flex items-center gap-3 mb-4">
               <label class="text-sm font-semibold" for="pm-funnel-project">Projekt</label>
-              <select id="pm-funnel-project" class="input max-w-xs" [value]="funnelSlug()" (change)="openFunnel($any($event.target).value)">
+              <select id="pm-funnel-project" class="input max-w-xs" [value]="funnelSlug()" #funnelSelect (change)="openFunnel(funnelSelect.value)">
                 @for (p of overview()?.projects ?? []; track p.slug) { <option [value]="p.slug">{{ p.title }}</option> }
               </select>
             </div>
@@ -393,10 +394,9 @@ export class AdminProjektmuhelyComponent implements OnInit {
     try {
       const stats = await firstValueFrom(this.api.getTechnikum(this.days()));
       if (seq === this.technikumSeq) this.technikum.set(stats);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (seq !== this.technikumSeq) return;
-      const message = err?.error?.errorMessage;
-      this.error.set(typeof message === 'string' && message.trim() ? message : 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
+      this.error.set(extractErrorMessage(err, 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.'));
     } finally {
       if (seq === this.technikumSeq) this.technikumLoading.set(false);
     }

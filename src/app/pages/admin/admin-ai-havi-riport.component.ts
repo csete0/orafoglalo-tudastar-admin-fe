@@ -57,7 +57,7 @@ export function fmtUsd(v: number): string {
       <div class="flex gap-2 items-center flex-wrap">
         <label class="sr-only" for="havi-riport-honap">Hónap</label>
         <select id="havi-riport-honap" class="input !w-auto" data-testid="month-select"
-          [value]="month()" (change)="setMonth($any($event.target).value)">
+          #monthSelect [value]="month()" (change)="setMonth(monthSelect.value)">
           @for (m of monthOptions; track m.key) {
             <option [value]="m.key">{{ m.label }}</option>
           }
@@ -104,7 +104,7 @@ export function fmtUsd(v: number): string {
         <div class="flex gap-2 mb-4 flex-wrap items-center">
           <input class="input flex-1 min-w-[12rem] sm:!w-auto sm:flex-none" type="search" placeholder="Keresés név vagy e-mail szerint…"
             aria-label="Keresés név vagy e-mail szerint" data-testid="report-search"
-            [value]="query()" (input)="query.set($any($event.target).value)" />
+            #searchInput [value]="query()" (input)="query.set(searchInput.value)" />
           <button type="button" class="btn btn-ghost !border !border-border-default !px-3 !py-1.5 !text-xs" data-testid="sort-toggle"
             [attr.aria-label]="'Rendezés költség szerint, ' + (sortDir() === 'desc' ? 'csökkenő' : 'növekvő')"
             (click)="toggleSort()">

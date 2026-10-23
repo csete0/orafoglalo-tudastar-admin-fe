@@ -3,6 +3,18 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthStore } from '../../services/auth/auth.store';
+import { isRecord } from '../../shared/http-error/extract-error-message.util';
+
+/** A backend hibatestéből az `errorMessage`, ennek híján az `error` mező; különben generikus szöveg. */
+function loginErrorMessage(err: unknown): string {
+  const body: unknown = err instanceof HttpErrorResponse ? err.error : null;
+  if (isRecord(body)) {
+    const { errorMessage, error } = body;
+    if (typeof errorMessage === 'string') return errorMessage;
+    if (typeof error === 'string') return error;
+  }
+  return 'Sikertelen bejelentkezés.';
+}
 
 @Component({
   selector: 'app-login',
@@ -31,11 +43,7 @@ export class LoginComponent {
       // A backend AdminAuthController SZÁNDÉKOSAN egységes hibaüzenetet ad
       // (BE-LOGIN-USER-ENUMERATION mintája) - itt is azt jelenítjük meg, nem
       // találunk ki sajátot.
-      const message =
-        err instanceof HttpErrorResponse
-          ? (err.error?.errorMessage ?? err.error?.error ?? 'Sikertelen bejelentkezés.')
-          : 'Sikertelen bejelentkezés.';
-      this.errorMessage.set(message);
+      this.errorMessage.set(loginErrorMessage(err));
     } finally {
       this.isSubmitting.set(false);
     }
