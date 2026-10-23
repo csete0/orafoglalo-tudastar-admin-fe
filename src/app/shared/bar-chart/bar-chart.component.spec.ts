@@ -71,7 +71,8 @@ describe('BarChartComponent', () => {
     ['egy kicsi oszlop (a skála alja 4)', [col('a', [1])], 180],
     ['két nap, halmozott, 0-s szelettel', [col('2026-10-17', [40, 0, 0]), col('2026-10-18', [500, 0, 20, 0, 0])], 180],
     ['24 óra, sok üres', Array.from({ length: 24 }, (_, h) => col(String(h).padStart(2, '0'), h === 9 ? [300, 20] : h === 14 ? [200] : [0], h % 3 === 0 ? String(h) : '')), 180],
-    ['90 nap, keskeny oszlop (min. 2 px)', Array.from({ length: 400 }, (_, i) => col(`d${i}`, [i % 7, i % 3])), 180],
+    ['60 oszlop (a szélesség se nem 2, se nem 18 px)', Array.from({ length: 60 }, (_, i) => col(`n${i}`, [(i * 37) % 11, i % 4])), 180],
+    ['400 oszlop, keskeny oszlop (min. 2 px)', Array.from({ length: 400 }, (_, i) => col(`d${i}`, [i % 7, i % 3])), 180],
     ['projektműhely-magasság, két sorozat', [col('x', [3, 5]), col('y', [12, 0]), col('z', [0, 7])], 200],
   ];
 
