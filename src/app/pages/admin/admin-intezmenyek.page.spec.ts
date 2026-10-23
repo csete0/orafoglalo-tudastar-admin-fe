@@ -289,6 +289,35 @@ describe('AdminIntezmenyekComponent – teljes oldal', () => {
     expect(schoolCards().length).toBe(3);
   });
 
+  it('a szűrő ki-be kapcsolása után a nyitott szerkesztő és új-licenc űrlap a licenc adataival / alapértékekkel tér vissza', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 23, 12, 0));
+    try {
+      await loaded();
+      await clickIn(licenseBlock(30), 'Szerkesztés');
+      await clickIn(schoolCard(3), '+ Új licenc');
+      const filter = el.querySelector<HTMLInputElement>('[data-testid="only-pending-public"]')!;
+      filter.click();
+      await settle();
+      expect(el.querySelector('[name="edit-cap-10"]')).toBeNull();
+      filter.click();
+      await settle();
+
+      expect(input('edit-cap-10').value).toBe('30');
+      expect(input('edit-from-10').value).toBe('2026-08-25');
+      expect(input('edit-to-10').value).toBe('2027-08-25');
+      expect(input('edit-idle-10').value).toBe('20');
+      expect(input('edit-note-10').value).toBe('Fenntartó Kft.');
+      expect(input('tier-3').value).toBe('premium');
+      expect(input('cap-3').value).toBe('30');
+      expect(input('from-3').value).toBe('2026-10-23');
+      expect(input('to-3').value).toBe('2027-10-23');
+      expect(input('note-3').value).toBe('');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a nyilvánosság-kapcsoló kattintásra nem vált; megerősítés után jóváhagy (POST) vagy visszavon (DELETE)', async () => {
     await loaded();
     const box2 = schoolCard(2).querySelector<HTMLInputElement>('[data-testid="public-approval-2"] input')!;

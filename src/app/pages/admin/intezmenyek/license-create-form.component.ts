@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, model } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input, model } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AdminLicenseStore } from '../../../services/admin/admin-license.store';
 import { AdminSchoolStore } from '../../../services/admin/admin-school.store';
@@ -57,7 +57,7 @@ import { AdminSchoolStore } from '../../../services/admin/admin-school.store';
     }
   `,
 })
-export class LicenseCreateFormComponent {
+export class LicenseCreateFormComponent implements OnInit {
   readonly licenseStore = inject(AdminLicenseStore);
   private readonly schoolStore = inject(AdminSchoolStore);
 
@@ -77,7 +77,16 @@ export class LicenseCreateFormComponent {
   start(): void {
     this.openSchoolId.set(this.schoolId());
     this.licenseStore.clearError();
+    this.resetToDefaults();
+  }
 
+  // A nyitott állapot oldal-szintű, a komponens viszont újra létrejöhet (pl. a szűrő ki-be kapcsolásakor): ilyenkor a
+  // nyitott űrlap ne üres dátumokkal jelenjen meg, hanem az alapértékekkel.
+  ngOnInit(): void {
+    if (this.openSchoolId() === this.schoolId()) this.resetToDefaults();
+  }
+
+  private resetToDefaults(): void {
     const today = new Date();
     const nextYear = new Date(today);
     nextYear.setFullYear(nextYear.getFullYear() + 1);

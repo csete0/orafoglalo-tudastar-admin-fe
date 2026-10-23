@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, model } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AdminLicenseStore } from '../../../services/admin/admin-license.store';
@@ -126,7 +126,7 @@ import { LicenseUsagePanelComponent } from './license-usage-panel.component';
     }
   `,
 })
-export class SchoolLicenseCardComponent {
+export class SchoolLicenseCardComponent implements OnInit {
   readonly licenseStore = inject(AdminLicenseStore);
   private readonly schoolStore = inject(AdminSchoolStore);
   private readonly confirmService = inject(ConfirmService);
@@ -196,9 +196,19 @@ export class SchoolLicenseCardComponent {
   // a korábbi workaround (Visszavonás + Új licenc) azonnal kirúgta a nem-vizsgázó diákokat és nullázta a
   // kihasználtsági előzményt egy vadonatúj licenc-id alatt.
   startEdit(): void {
-    const license = this.license();
-    this.editingId.set(license.id);
+    this.editingId.set(this.license().id);
     this.licenseStore.clearError();
+    this.fillFromLicense();
+  }
+
+  // A nyitott állapot oldal-szintű, a kártya viszont újra létrejöhet (pl. a szűrő ki-be kapcsolásakor): ilyenkor a
+  // nyitott form ne az üres alapértékekkel jelenjen meg, hanem a licenc adataival.
+  ngOnInit(): void {
+    if (this.editing()) this.fillFromLicense();
+  }
+
+  private fillFromLicense(): void {
+    const license = this.license();
     this.editForm.setValue({
       capacity: license.capacity,
       validFrom: license.validFrom.slice(0, 10),
