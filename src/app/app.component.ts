@@ -1,22 +1,26 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthStore } from './services/auth/auth.store';
 import { ConfirmDialogComponent } from './shared/confirm/confirm-dialog.component';
 import { ToastComponent } from './shared/toast/toast.component';
 import { ToastService } from './shared/toast/toast.service';
 import { HangfireService } from './services/hangfire/hangfire.service';
+import { ADMIN_MENU } from './admin-nav';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmDialogComponent, ToastComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
   protected readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly hangfire = inject(HangfireService);
   private readonly toast = inject(ToastService);
+
+  protected readonly menu = ADMIN_MENU;
 
   /** Háttérfeladatok (Hangfire dashboard) új lapon - a lapot a kattintásban kell megnyitni (felugró-blokkoló). */
   openHangfire(event: Event): void {

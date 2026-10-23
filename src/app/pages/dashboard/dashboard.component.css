@@ -41,10 +41,6 @@ a.label:hover {
   color: var(--admin-accent);
 }
 
-.label.disabled {
-  color: var(--admin-text-muted);
-}
-
 .judge0-badge {
   display: inline-block;
   margin: 0 0 1rem;

@@ -45,34 +45,38 @@ describe('DashboardComponent', () => {
     expect(el.querySelector('h1')?.textContent?.trim()).toBe('Kezdőlap');
   });
 
-  it('a csempék sorrendje és útvonala változatlan', async () => {
+  it('a csempék a menüvel közös listából: sorrend, felirat, útvonal, leírás (owner-döntés 2: csapatok, próbaérettségi, verseny pótolva)', async () => {
     getReport = vi.fn(() => report('green'));
     const el = await render();
 
     const tiles = Array.from(el.querySelectorAll('ul.upcoming li')).map((li) => [
       li.querySelector('.label')?.textContent?.trim(),
       li.querySelector('a.label')?.getAttribute('href') ?? null,
+      li.querySelector('.note')?.textContent?.trim(),
     ]);
     expect(tiles).toEqual([
-      ['Audit-napló', '/audit-log'],
-      ['Ajándékkód-kezelés', '/gift-coupons'],
-      ['Felhasználó-kereső / 360°', '/users'],
-      ['Támogatói műveletek', '/users'],
-      ['Fizetés-lista', '/payments'],
-      ['Tanári aktivitás', '/tanarok'],
-      ['Alkalmazás-állapot', '/app-status'],
-      ['Kódfuttató terhelés', '/kodfuttato-terheles'],
-      ['Tanári jelentkezések', '/jelentkezesek'],
-      ['Intézményi licencek', '/intezmenyek'],
-      ['Kérdés-jelentések / érdeklődések', '/ellenorzes'],
-      ['Kuponkódok (általános)', '/kuponok'],
-      ['AI-költés pult', '/ai-koltes'],
-      ['Projektműhely', '/projektmuhely'],
-      ['Git', '/git'],
-      ['Növekedés', '/novekedes'],
-      ['Érettségi-eredmények', '/erettsegi-eredmenyek'],
-      ['Szempontlisták', '/szempontlistak'],
-      ['Gyakorló értékelések', '/gyakorlo-ertekelesek'],
+      ['Felhasználó-kereső / 360°', '/users', 'A2 - kész'],
+      ['Támogatói műveletek', '/users', 'A3 - kész (a felhasználó-részletezőben)'],
+      ['Ajándékkód-kezelés', '/gift-coupons', 'A1 - kész'],
+      ['Fizetés-lista', '/payments', 'A4 - kész'],
+      ['Audit-napló', '/audit-log', 'A5 - kész'],
+      ['Alkalmazás-állapot', '/app-status', 'A6 - kész'],
+      ['Kódfuttató terhelés', '/kodfuttato-terheles', 'Judge0: várakozás, p95, túlterhelés'],
+      ['Tanári jelentkezések', '/jelentkezesek', 'migrálva'],
+      ['Tanári aktivitás', '/tanarok', 'A7 - kész'],
+      ['Intézményi licencek', '/intezmenyek', 'migrálva'],
+      ['Kérdés-jelentések / érdeklődések', '/ellenorzes', 'migrálva'],
+      ['Kuponkódok (általános)', '/kuponok', 'migrálva'],
+      ['AI-költés pult', '/ai-koltes', 'migrálva'],
+      ['Projektműhely', '/projektmuhely', 'haladás, tölcsér, AI- és Judge0-költés'],
+      ['Git', '/git', 'kvóták, tárolók, zárolás'],
+      ['Csapatok', '/csapatok', 'vizsgaremek-csapatok, GitHub-tükrözés, MI-átnézések'],
+      ['Növekedés', '/novekedes', 'kohorszok, aktiválódás, megmaradás, lemondási okok'],
+      ['Próbaérettségi', '/probaerettsegi', 'esemény, kitöltés, MI-keret, megtérülés'],
+      ['Érettségi-eredmények', '/erettsegi-eredmenyek', 'valódi eredmények, előrejelzés-pontosság, idézetek'],
+      ['Szempontlisták', '/szempontlistak', 'a hivatalos feladatok pontozási szempontjai, jóváhagyás'],
+      ['Gyakorló értékelések', '/gyakorlo-ertekelesek', 'darab, költség, keret-kihasználtság, toplista'],
+      ['Verseny', '/verseny', 'feladatok közzétételi kapuja, forgalom'],
     ]);
   });
 });

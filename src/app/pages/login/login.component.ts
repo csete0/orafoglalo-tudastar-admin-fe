@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthStore } from '../../services/auth/auth.store';
@@ -18,16 +18,16 @@ function loginErrorMessage(err: unknown): string {
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
-  email = '';
-  password = '';
+  readonly form = inject(NonNullableFormBuilder).group({ email: '', password: '' });
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
@@ -37,7 +37,8 @@ export class LoginComponent {
     this.isSubmitting.set(true);
 
     try {
-      await this.authStore.login(this.email, this.password);
+      const { email, password } = this.form.getRawValue();
+      await this.authStore.login(email, password);
       this.router.navigate(['/']);
     } catch (err) {
       // A backend AdminAuthController SZÁNDÉKOSAN egységes hibaüzenetet ad

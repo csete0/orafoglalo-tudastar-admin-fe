@@ -3,26 +3,9 @@
     <span class="brand">Patricks Admin</span>
     <nav class="nav">
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Kezdőlap</a>
-      <a routerLink="/users" routerLinkActive="active">Felhasználók</a>
-      <a routerLink="/gift-coupons" routerLinkActive="active">Ajándékkódok</a>
-      <a routerLink="/payments" routerLinkActive="active">Fizetések</a>
-      <a routerLink="/audit-log" routerLinkActive="active">Audit-napló</a>
-      <a routerLink="/app-status" routerLinkActive="active">Alkalmazás-állapot</a>
-      <a routerLink="/kodfuttato-terheles" routerLinkActive="active">Kódfuttató terhelés</a>
-      <a routerLink="/jelentkezesek" routerLinkActive="active">Jelentkezések</a>
-      <a routerLink="/tanarok" routerLinkActive="active">Tanárok</a>
-      <a routerLink="/intezmenyek" routerLinkActive="active">Intézmények</a>
-      <a routerLink="/ellenorzes" routerLinkActive="active">Ellenőrzés</a>
-      <a routerLink="/ai-koltes" routerLinkActive="active">AI-költés</a>
-      <a routerLink="/projektmuhely" routerLinkActive="active">Projektműhely</a>
-      <a routerLink="/git" routerLinkActive="active">Git</a>
-      <a routerLink="/csapatok" routerLinkActive="active">Csapatok</a>
-      <a routerLink="/novekedes" routerLinkActive="active">Növekedés</a>
-      <a routerLink="/probaerettsegi" routerLinkActive="active">Próbaérettségi</a>
-      <a routerLink="/erettsegi-eredmenyek" routerLinkActive="active">Érettségi-eredmények</a>
-      <a routerLink="/szempontlistak" routerLinkActive="active">Szempontlisták</a>
-      <a routerLink="/gyakorlo-ertekelesek" routerLinkActive="active">Gyakorló értékelések</a>
-      <a routerLink="/verseny" routerLinkActive="active">Verseny</a>
+      @for (item of menu; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active">{{ item.label }}</a>
+      }
       <a href="#" (click)="openHangfire($event)">Háttérfeladatok</a>
     </nav>
     <div class="who">

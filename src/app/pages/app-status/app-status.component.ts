@@ -1,31 +1,27 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { AppStatusService, AppStatusResult } from '../../services/app-status/app-status.service';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { AppStatusService } from '../../services/app-status/app-status.service';
+import { latestValue } from '../../shared/resource/latest-value';
 
 @Component({
   selector: 'app-app-status',
   templateUrl: './app-status.component.html',
   styleUrl: './app-status.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppStatusComponent implements OnInit {
+export class AppStatusComponent {
   private readonly appStatusService = inject(AppStatusService);
+  private readonly status = rxResource({ stream: () => this.appStatusService.getStatus() });
+  private readonly latest = latestValue(this.status);
 
-  readonly items = signal<AppStatusResult[]>([]);
-  readonly isLoading = signal(true);
-  readonly errorMessage = signal<string | null>(null);
+  /** Hiba után a korábbi lista marad. */
+  readonly items = computed(() => this.latest() ?? []);
+  readonly isLoading = this.status.isLoading;
+  // `status()`-ra kötve: a hibaállapotból indított `reload()` alatt az `error()` még a régi hibát adná, az üzenet viszont
+  // betöltéskor eltűnik (mint eddig).
+  readonly errorMessage = computed(() => (this.status.status() === 'error' ? 'Az állapot-lekérdezés sikertelen.' : null));
 
-  async ngOnInit(): Promise<void> {
-    await this.refresh();
-  }
-
-  async refresh(): Promise<void> {
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-    try {
-      this.items.set(await this.appStatusService.getStatus());
-    } catch {
-      this.errorMessage.set('Az állapot-lekérdezés sikertelen.');
-    } finally {
-      this.isLoading.set(false);
-    }
+  refresh(): void {
+    this.status.reload();
   }
 }

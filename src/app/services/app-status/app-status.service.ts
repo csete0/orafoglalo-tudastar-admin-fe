@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface AppStatusResult {
@@ -15,7 +15,7 @@ export interface AppStatusResult {
 export class AppStatusService {
   private readonly http = inject(HttpClient);
 
-  async getStatus(): Promise<AppStatusResult[]> {
-    return firstValueFrom(this.http.get<AppStatusResult[]>(`${environment.apiUrl}/app-status`));
+  getStatus(): Observable<AppStatusResult[]> {
+    return this.http.get<AppStatusResult[]>(`${environment.apiUrl}/app-status`);
   }
 }

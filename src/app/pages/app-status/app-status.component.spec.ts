@@ -25,7 +25,7 @@ describe('AppStatusComponent', () => {
   const button = () => el.querySelector<HTMLButtonElement>('.header-row button')!;
   const errorText = () => el.querySelector('.error')?.textContent?.trim() ?? null;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AppStatusComponent],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -33,8 +33,8 @@ describe('AppStatusComponent', () => {
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AppStatusComponent);
     el = fixture.nativeElement;
+    // Nincs whenStable(): a függő kérés (resource) a flush-ig nyitva tartja az app stabilitását.
     fixture.detectChanges();
-    await fixture.whenStable();
   });
 
   afterEach(() => http.verify());
@@ -78,6 +78,7 @@ describe('AppStatusComponent', () => {
     await settle();
 
     button().click();
+    fixture.detectChanges(); // a resource a következő változás-észleléskor indítja a kérést
     http.expectOne(URL_).flush(null, { status: 502, statusText: 'Bad Gateway' });
     await settle();
     expect(errorText()).toBe('Az állapot-lekérdezés sikertelen.');

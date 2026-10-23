@@ -49,6 +49,12 @@ describe('LoginComponent', () => {
     expect(errorText(fixture.nativeElement)).toBeNull();
   });
 
+  it('üres mezőkkel is beküld (a böngésző-validáció ki van kapcsolva, a backend dönt)', async () => {
+    const fixture = await render();
+    await fillAndSubmit(fixture, '', '');
+    expect(login).toHaveBeenCalledWith('', '');
+  });
+
   it('a backend errorMessage mezőjét írja ki', async () => {
     login.mockRejectedValue(new HttpErrorResponse({ status: 401, error: { errorMessage: 'Hibás e-mail vagy jelszó.', error: 'más' } }));
     const fixture = await render();
