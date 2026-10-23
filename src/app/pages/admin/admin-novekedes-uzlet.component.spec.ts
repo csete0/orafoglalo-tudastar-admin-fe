@@ -29,7 +29,7 @@ describe('Tulajdonosi irányítópult (Növekedés fülei)', () => {
       getUnitEconomics: vi.fn(() => of({
         usdToHuf: 360,
         months: [{ month: '2026-10', aiCostUsd: 10, aiCostHuf: 3600, unknownCostCalls: 2, activeUsers: 30, payingUsers: 12, netRevenue: 8600,
-          aiCostPerActiveUserHuf: 120, aiCostPerPayingUserHuf: 300, revenuePerPayingUserHuf: 717, marginRate: 0.581 }],
+          aiCostPerActiveUserHuf: 120, aiCostPerPayingUserHuf: 300, revenuePerPayingUserHuf: 1717.4, marginRate: 0.581 }],
         topDrivers: [{ source: 'grading', costUsd: 8, costHuf: 2880, requests: 40, share: 0.8 }, { source: 'chat', costUsd: 2, costHuf: 720, requests: 90, share: 0.2 }],
       })),
       getReferrals: vi.fn(() => of({
@@ -87,6 +87,8 @@ describe('Tulajdonosi irányítópult (Növekedés fülei)', () => {
     open('Egységgazdaság');
     expect(text('[data-testid="unit-months"]')).toContain('58%');
     expect(text('[data-testid="unit-months"]')).toContain('300 Ft');
+    expect(text('[data-testid="unit-months"]')).toContain('1,717 Ft'); // a per-fő oszlop is tagolt, mint az összeg-oszlop (3,600 Ft)
+    expect(text('[data-testid="unit-months"]')).toContain('3,600 Ft');
     expect(text('[data-testid="unit-drivers"]')).toContain('Vizsga AI-értékelés');
     expect(text('[data-testid="unit-drivers"]')).toContain('80%');
   });

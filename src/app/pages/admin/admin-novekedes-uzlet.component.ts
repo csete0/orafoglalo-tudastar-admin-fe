@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, LOCALE_ID, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe, PercentPipe, formatNumber } from '@angular/common';
 import { AdminGrowthService } from '../../services/admin/admin-growth.service';
 import { ReferralReport, RevenueReport, TrialFunnel, UnitEconomics } from '../../models/growth.model';
 import { sourceLabel } from '../../models/ai-spending.model';
@@ -288,6 +288,7 @@ export class AdminNovekedesProbaComponent implements OnInit {
 })
 export class AdminNovekedesEgysegComponent implements OnInit {
   private readonly api = inject(AdminGrowthService);
+  private readonly locale = inject(LOCALE_ID);
   readonly csvButton = CSV_BUTTON;
   readonly data = signal<UnitEconomics | null>(null);
   readonly error = signal<string | null>(null);
@@ -298,8 +299,9 @@ export class AdminNovekedesEgysegComponent implements OnInit {
     this.api.getUnitEconomics(12).subscribe({ next: (u) => this.data.set(u), error: () => this.error.set('Az egységgazdasági adatok betöltése nem sikerült.') });
   }
 
+  /** Ugyanaz a tagolás, mint az összeg-oszlopok `number: '1.0-0'` pipe-ja (a hu-HU toLocaleString 4 jegyig nem tagol). */
   money(value: number | null): string {
-    return value === null ? '–' : `${Math.round(value).toLocaleString('hu-HU')} Ft`;
+    return value === null ? '–' : `${formatNumber(value, this.locale, '1.0-0')} Ft`;
   }
 
   exportCsv(u: UnitEconomics): void {
