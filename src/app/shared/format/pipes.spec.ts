@@ -7,6 +7,7 @@ describe('formázó pipe-ok', () => {
     const pipe = new UsdPipe();
     expect(pipe.transform(0.042)).toBe('$0.042');
     expect(pipe.transform(3.456)).toBe('$3.46');
+    expect([0.00012, 0.05, 0, 3.456].map((v) => pipe.transform(v, 'fine'))).toEqual(['$0.0001', '$0.050', '$0.00', '$3.46']);
   });
 
   it('bytes: alapból mértékegységgel, „MB” paraméterrel csak a szám', () => {

@@ -3,6 +3,14 @@ export function formatUsd(v: number): string {
   return '$' + v.toFixed(v < 1 ? 3 : 2);
 }
 
+/**
+ * Dollár-összeg finomabb felbontással (a Projektműhely formája; egy kérés ~0,0001 USD): 0 és 1 felett 2, 0,01 alatt 4,
+ * közte 3 tizedes ($0.00 / $0.0004 / $0.050 / $3.46).
+ */
+export function formatUsdFine(v: number): string {
+  return '$' + v.toFixed(v === 0 || v >= 1 ? 2 : v < 0.01 ? 4 : 3);
+}
+
 /** Arány (0–1), ha van nevező; különben null. */
 export function ratio(part: number | null, whole: number): number | null {
   return part === null || whole === 0 ? null : part / whole;

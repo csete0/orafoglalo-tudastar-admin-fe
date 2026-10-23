@@ -1,10 +1,14 @@
-import { formatBytes, formatMb, formatUsd, percentOf, ratio } from './number-utils';
+import { formatBytes, formatMb, formatUsd, formatUsdFine, percentOf, ratio } from './number-utils';
 
 describe('number-utils', () => {
   it('formatUsd: 1 alatt 3, efölött 2 tizedes (az AI-költés pult formája)', () => {
     expect([0, 0.0123, 0.2, 0.999, 1, 1.256, 12].map(formatUsd)).toEqual(['$0.000', '$0.012', '$0.200', '$0.999', '$1.00', '$1.26', '$12.00']);
   });
 
+  it('formatUsdFine: 0 és 1 felett 2, 0,01 alatt 4, közte 3 tizedes (a Projektműhely formája)', () => {
+    expect([0, 0.00012, 0.0005, 0.0099, 0.01, 0.05, 0.999, 1, 3.456].map(formatUsdFine))
+      .toEqual(['$0.00', '$0.0001', '$0.0005', '$0.0099', '$0.010', '$0.050', '$0.999', '$1.00', '$3.46']);
+  });
   it('ratio: arány 0–1, nulla nevezőnél vagy hiányzó számlálónál null', () => {
     expect(ratio(1, 4)).toBe(0.25);
     expect(ratio(0, 4)).toBe(0);
