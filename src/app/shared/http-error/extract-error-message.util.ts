@@ -11,7 +11,13 @@
  * majd a `GroupStore`/`SchoolStore`-ban is (255 karakteres névhossz-limit
  * túllépése) bevezetve, ide emelve, hogy ne triplázódjon.
  */
-export function extractErrorMessage(err: any, fallback = 'Hiba történt.'): string {
+/** Szűkítő őr: nem-null objektum, amelynek a mezői `unknown`-ként olvashatók. */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+export function extractErrorMessage(err: unknown, fallback = 'Hiba történt.'): string {
+  if (!isRecord(err)) return fallback;
   // UI-TT-109: egy nginx `client_max_body_size`-t meghaladó fájlfeltöltés HTML-testű
   // 413-at ad vissza (nem JSON-t) — a body?.errorMessage/body?.errors ellenőrzések erre
   // értelemszerűen sosem illenek rá, ezért ez korábban csendben a tartalmatlan `fallback`
@@ -19,18 +25,20 @@ export function extractErrorMessage(err: any, fallback = 'Hiba történt.'): str
   // (és a nginx-limit jóval alacsonyabb, mint a dokumentált, kind-onkénti app-szintű
   // limitek). A státuszkódot a body-értelmezés ELŐTT kell ellenőrizni, mert a body ebben
   // az esetben irreleváns/nem-parseolható.
-  if (err?.status === 413) {
+  if (err['status'] === 413) {
     return 'A feltöltött fájl mérete meghaladja a megengedett korlátot.';
   }
-  const body = err?.error;
-  if (typeof body?.errorMessage === 'string' && body.errorMessage.trim()) {
-    return body.errorMessage;
+  const body = err['error'];
+  if (!isRecord(body)) return fallback;
+  const { errorMessage, errors } = body;
+  if (typeof errorMessage === 'string' && errorMessage.trim()) {
+    return errorMessage;
   }
-  if (Array.isArray(body?.errors)) {
-    const joined = body.errors.filter((e: unknown) => typeof e === 'string' && e.trim()).join(' ');
+  if (Array.isArray(errors)) {
+    const joined = errors.filter((e: unknown) => typeof e === 'string' && e.trim()).join(' ');
     if (joined) return joined;
-  } else if (body?.errors && typeof body.errors === 'object') {
-    const joined = Object.values(body.errors as Record<string, unknown>)
+  } else if (isRecord(errors)) {
+    const joined = Object.values(errors)
       .flatMap((messages) => (Array.isArray(messages) ? messages : [messages]))
       .filter((m): m is string => typeof m === 'string' && m.trim().length > 0)
       .join(' ');

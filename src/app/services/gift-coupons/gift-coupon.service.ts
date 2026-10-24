@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface GiftCouponListItem {
@@ -42,28 +42,21 @@ export interface ResendResult {
 export class GiftCouponService {
   private readonly http = inject(HttpClient);
 
-  async getPage(filter: GiftCouponFilter): Promise<GiftCouponPage> {
+  getPage(filter: GiftCouponFilter): Observable<GiftCouponPage> {
     let params = new HttpParams().set('page', filter.page).set('pageSize', filter.pageSize);
     if (filter.code) params = params.set('code', filter.code);
     if (filter.email) params = params.set('email', filter.email);
     if (filter.redeemed !== undefined) params = params.set('redeemed', filter.redeemed);
     if (filter.active !== undefined) params = params.set('active', filter.active);
 
-    return firstValueFrom(
-      this.http.get<GiftCouponPage>(`${environment.apiUrl}/gift-coupons`, { params }),
-    );
+    return this.http.get<GiftCouponPage>(`${environment.apiUrl}/gift-coupons`, { params });
   }
 
-  async resend(id: number, toPurchaser: boolean, toChild: boolean): Promise<ResendResult> {
-    return firstValueFrom(
-      this.http.post<ResendResult>(`${environment.apiUrl}/gift-coupons/${id}/resend`, {
-        toPurchaser,
-        toChild,
-      }),
-    );
+  resend(id: number, toPurchaser: boolean, toChild: boolean): Observable<ResendResult> {
+    return this.http.post<ResendResult>(`${environment.apiUrl}/gift-coupons/${id}/resend`, { toPurchaser, toChild });
   }
 
-  async deactivate(id: number): Promise<void> {
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/gift-coupons/${id}/deactivate`, {}));
+  deactivate(id: number): Observable<unknown> {
+    return this.http.post(`${environment.apiUrl}/gift-coupons/${id}/deactivate`, {});
   }
 }

@@ -1,64 +1,62 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { PaymentService, AdminPaymentListItem } from '../../services/payments/payment.service';
+import { PaymentService } from '../../services/payments/payment.service';
+import { PagerComponent } from '../../shared/pager/pager.component';
+import { latestValue } from '../../shared/resource/latest-value';
 
 const PAGE_SIZE = 50;
 
+type YesNoFilter = 'all' | 'true' | 'false';
+
 @Component({
   selector: 'app-payments',
-  standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PagerComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './payments.component.html',
-  styleUrl: './payments.component.css',
+  styleUrls: ['../list-page.css', './payments.component.css'],
 })
-export class PaymentsComponent implements OnInit {
+export class PaymentsComponent {
   private readonly paymentService = inject(PaymentService);
+  private readonly fb = inject(NonNullableFormBuilder);
 
-  readonly items = signal<AdminPaymentListItem[]>([]);
-  readonly totalCount = signal(0);
+  readonly pageSize = PAGE_SIZE;
+  /** A szűrő-mezők; csak a Szűrés gombbal lépnek érvénybe. */
+  readonly form = this.fb.group({
+    query: '',
+    status: '',
+    refundedFilter: this.fb.control<YesNoFilter>('all'),
+    reviewFilter: this.fb.control<YesNoFilter>('all'),
+  });
+  private readonly filter = signal(this.form.getRawValue());
   readonly page = signal(1);
-  readonly isLoading = signal(false);
 
-  query = '';
-  status = '';
-  refundedFilter: 'all' | 'true' | 'false' = 'all';
-  reviewFilter: 'all' | 'true' | 'false' = 'all';
-
-  async ngOnInit(): Promise<void> {
-    await this.load();
-  }
-
-  async search(): Promise<void> {
-    this.page.set(1);
-    await this.load();
-  }
-
-  async goToPage(page: number): Promise<void> {
-    if (page < 1) return;
-    this.page.set(page);
-    await this.load();
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalCount() / PAGE_SIZE));
-  }
-
-  private async load(): Promise<void> {
-    this.isLoading.set(true);
-    try {
-      const result = await this.paymentService.getPage({
-        query: this.query || undefined,
-        status: this.status || undefined,
-        refunded: this.refundedFilter === 'all' ? undefined : this.refundedFilter === 'true',
-        needsManualReview: this.reviewFilter === 'all' ? undefined : this.reviewFilter === 'true',
+  private readonly result = rxResource({
+    params: () => {
+      const f = this.filter();
+      return {
+        query: f.query || undefined,
+        status: f.status || undefined,
+        refunded: f.refundedFilter === 'all' ? undefined : f.refundedFilter === 'true',
+        needsManualReview: f.reviewFilter === 'all' ? undefined : f.reviewFilter === 'true',
         page: this.page(),
         pageSize: PAGE_SIZE,
-      });
-      this.items.set(result.items);
-      this.totalCount.set(result.totalCount);
-    } finally {
-      this.isLoading.set(false);
-    }
+      };
+    },
+    stream: ({ params }) => this.paymentService.getPage(params),
+  });
+  private readonly latest = latestValue(this.result);
+  readonly items = computed(() => this.latest()?.items ?? []);
+  readonly totalCount = computed(() => this.latest()?.totalCount ?? 0);
+  readonly isLoading = this.result.isLoading;
+
+  search(): void {
+    this.page.set(1);
+    this.filter.set(this.form.getRawValue());
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1) this.page.set(page);
   }
 }

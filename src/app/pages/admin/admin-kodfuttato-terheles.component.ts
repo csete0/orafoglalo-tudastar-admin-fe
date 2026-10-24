@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminJudge0LoadService } from '../../services/admin/admin-judge0-load.service';
 import {
   JUDGE0_KINDS,
@@ -11,27 +11,19 @@ import {
   judge0KindLabel,
 } from '../../models/judge0-load.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { BarChartColumn, BarChartComponent } from '../../shared/bar-chart/bar-chart.component';
+import { latestValue } from '../../shared/resource/latest-value';
 
-const CHART_WIDTH = 860;
-const CHART_HEIGHT = 180;
-const PAD_LEFT = 36;
-const PAD_RIGHT = 8;
-const PAD_TOP = 10;
-const PAD_BOTTOM = 22;
+type StatRow = { kind: string; stats: Judge0LoadStats };
 
-interface Column {
-  key: string;
-  label: string;
-  rows: { kind: string; stats: Judge0LoadStats }[];
-}
-
-interface Bar {
-  key: string;
-  x: number;
-  width: number;
-  label: string;
-  title: string;
-  segments: { y: number; h: number; color: string }[];
+/** Halmozott oszlop fajtánként (JUDGE0_KINDS sorrendben), súgóban a fajtánkénti futásszám és p95. */
+function column(key: string, rows: StatRow[]): BarChartColumn {
+  const parts = rows.map((r) => `${judge0KindLabel(r.kind)}: ${r.stats.runs} futás, p95 ${fmtMs(r.stats.p95Ms)}`);
+  return {
+    key,
+    title: [key, ...parts].join(' · '),
+    segments: JUDGE0_KINDS.map((k) => ({ value: rows.filter((r) => r.kind === k.key).reduce((s, r) => s + r.stats.runs, 0), color: k.color })),
+  };
 }
 
 /**
@@ -41,8 +33,7 @@ interface Bar {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-kodfuttato-terheles',
-  standalone: true,
-  imports: [LocalSpinnerComponent],
+  imports: [LocalSpinnerComponent, BarChartComponent],
   template: `
     <div class="max-w-6xl">
       <p class="text-xs font-bold text-text-muted uppercase tracking-wide mb-1">Platform-admin</p>
@@ -95,19 +86,8 @@ interface Bar {
           <div class="card p-5 mb-6">
             <h2 class="font-bold">Napi futások</h2>
             <p class="text-xs text-text-muted mt-0.5">Fajtánként; az oszlopra kattintva a nap óránként.</p>
-            <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" class="w-full h-auto block mt-3" role="img" aria-label="Napi Judge0-futások fajtánként">
-              @for (tick of dailyTicks(); track tick.y) {
-                <line [attr.x1]="padLeft" [attr.x2]="chartWidth - padRight" [attr.y1]="tick.y" [attr.y2]="tick.y" stroke="var(--color-border-default)" stroke-width="1" />
-                <text [attr.x]="padLeft - 6" [attr.y]="tick.y + 3" text-anchor="end" font-size="10" fill="var(--color-text-muted)">{{ tick.label }}</text>
-              }
-              @for (bar of dailyBars(); track bar.key) {
-                @for (s of bar.segments; track $index) {
-                  <rect [attr.x]="bar.x" [attr.y]="s.y" [attr.width]="bar.width" [attr.height]="s.h" [attr.fill]="s.color" rx="2" />
-                }
-                <rect [attr.x]="bar.x" [attr.y]="padTop" [attr.width]="bar.width" [attr.height]="chartHeight - padTop - padBottom" fill="transparent"
-                  class="cursor-pointer" (click)="selectedDay.set(bar.key)"><title>{{ bar.title }}</title></rect>
-              }
-            </svg>
+            <svg app-bar-chart [columns]="dailyColumns()" clickable (barClick)="selectedDay.set($event)" class="w-full h-auto block mt-3" role="img"
+              aria-label="Napi Judge0-futások fajtánként"></svg>
             <div class="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-border-default text-xs text-text-muted">
               @for (k of kinds; track k.key) {
                 <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm inline-block" [style.background]="k.color"></span>{{ k.label }}</span>
@@ -151,19 +131,7 @@ interface Bar {
           @if (selectedDay(); as day) {
             <div class="card p-5">
               <h2 class="font-bold">{{ dayLabel(day) }} óránként</h2>
-              <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" class="w-full h-auto block mt-3" role="img" aria-label="Óránkénti Judge0-futások">
-                @for (tick of hourlyTicks(); track tick.y) {
-                  <line [attr.x1]="padLeft" [attr.x2]="chartWidth - padRight" [attr.y1]="tick.y" [attr.y2]="tick.y" stroke="var(--color-border-default)" stroke-width="1" />
-                  <text [attr.x]="padLeft - 6" [attr.y]="tick.y + 3" text-anchor="end" font-size="10" fill="var(--color-text-muted)">{{ tick.label }}</text>
-                }
-                @for (bar of hourlyBars(); track bar.key) {
-                  @for (s of bar.segments; track $index) {
-                    <rect [attr.x]="bar.x" [attr.y]="s.y" [attr.width]="bar.width" [attr.height]="s.h" [attr.fill]="s.color" rx="2" />
-                  }
-                  <text [attr.x]="bar.x + bar.width / 2" [attr.y]="chartHeight - 6" text-anchor="middle" font-size="10" fill="var(--color-text-muted)">{{ bar.label }}</text>
-                  <rect [attr.x]="bar.x" [attr.y]="padTop" [attr.width]="bar.width" [attr.height]="chartHeight - padTop - padBottom" fill="transparent"><title>{{ bar.title }}</title></rect>
-                }
-              </svg>
+              <svg app-bar-chart [columns]="hourlyColumns()" class="w-full h-auto block mt-3" role="img" aria-label="Óránkénti Judge0-futások"></svg>
               <div class="overflow-x-auto mt-3">
                 <table class="w-full text-sm">
                   <thead>
@@ -200,24 +168,26 @@ interface Bar {
     </div>
   `,
 })
-export class AdminKodfuttatoTerhelesComponent implements OnInit {
+export class AdminKodfuttatoTerhelesComponent {
   private readonly api = inject(AdminJudge0LoadService);
 
   readonly dayOptions = [7, 30, 90];
   readonly kinds = JUDGE0_KINDS;
-  readonly chartWidth = CHART_WIDTH;
-  readonly chartHeight = CHART_HEIGHT;
-  readonly padLeft = PAD_LEFT;
-  readonly padRight = PAD_RIGHT;
-  readonly padTop = PAD_TOP;
-  readonly padBottom = PAD_BOTTOM;
 
   readonly days = signal(7);
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly report = signal<Judge0LoadReport | null>(null);
-  /** A kiválasztott nap („2026-10-18”); alapból a legutolsó nap adattal. */
-  readonly selectedDay = signal<string | null>(null);
+  private readonly reportResource = rxResource({
+    params: () => this.days(),
+    stream: ({ params: days }) => this.api.getReport(days),
+  });
+  readonly loading = this.reportResource.isLoading;
+  readonly error = computed(() =>
+    this.reportResource.status() === 'error' ? 'A kódfuttató terhelés-adatait nem sikerült betölteni.' : null,
+  );
+  /** Hiba után a korábbi jelentés marad (betöltés közben a spinner takarja). */
+  private readonly latestReport = latestValue(this.reportResource);
+  readonly report = computed(() => this.latestReport() ?? null);
+  /** A kiválasztott nap („2026-10-18”); minden új jelentésnél a legutolsó nap adattal. */
+  readonly selectedDay = linkedSignal(() => this.report()?.daily.at(-1)?.date ?? null);
 
   /** Legfrissebb nap elöl. */
   readonly dailyRows = computed(() => [...(this.report()?.daily ?? [])].sort((a, b) => b.date.localeCompare(a.date)));
@@ -227,81 +197,26 @@ export class AdminKodfuttatoTerhelesComponent implements OnInit {
     return (this.report()?.hourly ?? []).filter((h) => h.hour.startsWith(day ?? '-'));
   });
 
-  private readonly dailyColumns = computed<Column[]>(() => {
-    const byDate = new Map<string, Column>();
-    for (const d of this.report()?.daily ?? []) {
-      const col = byDate.get(d.date) ?? { key: d.date, label: this.dayLabel(d.date), rows: [] };
-      col.rows.push(d);
-      byDate.set(d.date, col);
-    }
-    return [...byDate.values()].sort((a, b) => a.key.localeCompare(b.key));
+  /** Napi oszlopok, időrendben. */
+  readonly dailyColumns = computed<BarChartColumn[]>(() => {
+    const daily = this.report()?.daily ?? [];
+    const dates = [...new Set(daily.map((d) => d.date))].sort();
+    return dates.map((date) => column(date, daily.filter((d) => d.date === date)));
   });
 
-  private readonly hourlyColumns = computed<Column[]>(() => {
+  /** A kiválasztott nap 24 órája; felirat minden 3. órán. */
+  readonly hourlyColumns = computed<BarChartColumn[]>(() => {
     const rows = this.hourlyRows();
     return Array.from({ length: 24 }, (_, h) => {
       const hh = String(h).padStart(2, '0');
-      return { key: hh, label: h % 3 === 0 ? hh : '', rows: rows.filter((r) => r.hour.slice(11, 13) === hh) };
+      return { ...column(hh, rows.filter((r) => r.hour.slice(11, 13) === hh)), label: h % 3 === 0 ? hh : '' };
     });
   });
 
-  readonly dailyBars = computed(() => this.bars(this.dailyColumns()));
-  readonly dailyTicks = computed(() => this.ticks(this.dailyColumns()));
-  readonly hourlyBars = computed(() => this.bars(this.hourlyColumns()));
-  readonly hourlyTicks = computed(() => this.ticks(this.hourlyColumns()));
-
-  async ngOnInit(): Promise<void> {
-    await this.load();
-  }
-
-  async setDays(days: number): Promise<void> {
-    this.days.set(days);
-    await this.load();
-  }
-
-  private async load(): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      const report = await firstValueFrom(this.api.getReport(this.days()));
-      this.report.set(report);
-      this.selectedDay.set(report.daily.length ? report.daily[report.daily.length - 1].date : null);
-    } catch {
-      this.error.set('A kódfuttató terhelés-adatait nem sikerült betölteni.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private maxRuns(columns: Column[]): number {
-    return Math.max(4, ...columns.map((c) => c.rows.reduce((s, r) => s + r.stats.runs, 0)));
-  }
-
-  private ticks(columns: Column[]) {
-    const plotH = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
-    const max = this.maxRuns(columns);
-    return [0, 1, 2, 3, 4].map((i) => ({ y: PAD_TOP + plotH - (i / 4) * plotH, label: String(Math.round((max / 4) * i)) }));
-  }
-
-  /** Halmozott oszlopok fajtánként (a Projektműhely-oldal SVG-mintája). */
-  private bars(columns: Column[]): Bar[] {
-    const plotW = CHART_WIDTH - PAD_LEFT - PAD_RIGHT;
-    const plotH = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
-    const step = plotW / Math.max(1, columns.length);
-    const width = Math.max(2, Math.min(18, step * 0.7));
-    const max = this.maxRuns(columns);
-    return columns.map((c, i) => {
-      let base = PAD_TOP + plotH;
-      const segments = JUDGE0_KINDS.flatMap((k) => {
-        const runs = c.rows.filter((r) => r.kind === k.key).reduce((s, r) => s + r.stats.runs, 0);
-        if (!runs) return [];
-        const h = (runs / max) * plotH;
-        base -= h;
-        return [{ y: base, h, color: k.color }];
-      });
-      const parts = c.rows.map((r) => `${judge0KindLabel(r.kind)}: ${r.stats.runs} futás, p95 ${fmtMs(r.stats.p95Ms)}`);
-      return { key: c.key, x: PAD_LEFT + i * step + (step - width) / 2, width, label: c.label, title: [c.key, ...parts].join(' · '), segments };
-    });
+  /** Az aktív időszak újrakattintása is újratölt (mint eddig). */
+  setDays(days: number): void {
+    if (days === this.days()) this.reportResource.reload();
+    else this.days.set(days);
   }
 
   dayLabel(date: string): string {

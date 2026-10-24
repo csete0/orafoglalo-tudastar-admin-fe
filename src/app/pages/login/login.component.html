@@ -1,5 +1,5 @@
 <div class="login-wrap">
-  <form class="login-card" (ngSubmit)="submit()">
+  <form class="login-card" [formGroup]="form" (ngSubmit)="submit()">
     <h1>Patricks Admin</h1>
     <p class="hint">LAN/WireGuard-only belépés</p>
 
@@ -9,12 +9,12 @@
 
     <label>
       Email
-      <input type="email" name="email" [(ngModel)]="email" required autocomplete="username" />
+      <input type="email" name="email" formControlName="email" required autocomplete="username" />
     </label>
 
     <label>
       Jelszó
-      <input type="password" name="password" [(ngModel)]="password" required autocomplete="current-password" />
+      <input type="password" name="password" formControlName="password" required autocomplete="current-password" />
     </label>
 
     <button type="submit" [disabled]="isSubmitting()">

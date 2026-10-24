@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface AdminAuditLogEntry {
@@ -37,7 +37,7 @@ export interface AuditLogFilter {
 export class AuditLogService {
   private readonly http = inject(HttpClient);
 
-  async getPage(filter: AuditLogFilter): Promise<AdminAuditLogPage> {
+  getPage(filter: AuditLogFilter): Observable<AdminAuditLogPage> {
     let params = new HttpParams().set('page', filter.page).set('pageSize', filter.pageSize);
     if (filter.actorUserId) params = params.set('actorUserId', filter.actorUserId);
     if (filter.action) params = params.set('action', filter.action);
@@ -46,12 +46,10 @@ export class AuditLogService {
     if (filter.fromUtc) params = params.set('fromUtc', filter.fromUtc);
     if (filter.toUtc) params = params.set('toUtc', filter.toUtc);
 
-    return firstValueFrom(
-      this.http.get<AdminAuditLogPage>(`${environment.apiUrl}/audit-log`, { params }),
-    );
+    return this.http.get<AdminAuditLogPage>(`${environment.apiUrl}/audit-log`, { params });
   }
 
-  async getTargetTypes(): Promise<string[]> {
-    return firstValueFrom(this.http.get<string[]>(`${environment.apiUrl}/audit-log/target-types`));
+  getTargetTypes(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/audit-log/target-types`);
   }
 }

@@ -65,6 +65,14 @@ describe('AdminGyakorloErtekelesekComponent', () => {
     expect(el.querySelector('[data-testid="practice-by-tier"]')!.textContent).toContain('Prémium');
   });
 
+  it('a dollár-összegeket a pult formájában írja ki (KPI, napi bontás, toplista)', () => {
+    const el: HTMLElement = render().nativeElement;
+    expect(el.querySelector('[data-testid="practice-kpis"]')!.textContent).toContain('$0.420');
+    expect(el.querySelector('[data-testid="practice-by-kind"] tbody tr')!.textContent).toContain('$0.024');
+    expect(el.querySelector('[data-testid="practice-daily"]')!.textContent).toContain('$0.060');
+    expect(el.querySelector('[data-testid="practice-top"]')!.textContent).toContain('$0.250');
+  });
+
   it('a Failed arányt a darabszámból számolja, és 10% fölött pirossal jelzi', () => {
     const el: HTMLElement = render().nativeElement;
     const failed = el.querySelector('[data-testid="practice-failed-rate"]')!;

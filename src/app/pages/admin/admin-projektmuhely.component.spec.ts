@@ -1,6 +1,11 @@
+import { Type } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Subject, of, throwError } from 'rxjs';
 import { AdminProjektmuhelyComponent } from './admin-projektmuhely.component';
+import { ProjektmuhelyAttekintesComponent } from './projektmuhely/projektmuhely-attekintes.component';
+import { ProjektmuhelyTolcserComponent } from './projektmuhely/projektmuhely-tolcser.component';
+import { UsdPipe } from '../../shared/format/usd.pipe';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
 import { AI_SOURCES } from '../../models/ai-spending.model';
 import { ProjectAdminCosts, ProjectAdminFunnel, ProjectAdminOverview, ProjectAdminTechnikumStats } from '../../models/projektmuhely.model';
@@ -46,7 +51,8 @@ describe('AdminProjektmuhelyComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, c: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, api };
+    const child = <T>(type: Type<T>): T => fixture.debugElement.query(By.directive(type)).componentInstance;
+    return { fixture, c: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, api, child };
   }
 
   it('a Projektműhely AI-forrásai az AI-költés oldalon is ismertek (különben a diagram kihagyná őket)', () => {
@@ -54,28 +60,33 @@ describe('AdminProjektmuhelyComponent', () => {
   });
 
   it('áttekintés: projekt-sor nyelvekkel, napi futtatás-összesítő', async () => {
-    const { el, c } = await setup();
+    const { el, child } = await setup();
+    const ov = child(ProjektmuhelyAttekintesComponent);
     expect(el.textContent).toContain('Büfé-rendelő');
-    expect(c.runtimes(overview.projects[0].byRuntime)).toBe('Python 7 · C# 3');
-    expect(c.totals()).toEqual({ checks: 12, previews: 2, aiRequests: 4, aiCostUsd: 0.005 });
-    expect(c.bars().length).toBe(2);
+    expect(ov.runtimes(overview.projects[0].byRuntime)).toBe('Python 7 · C# 3');
+    expect(ov.totals()).toEqual({ checks: 12, previews: 2, aiRequests: 4, aiCostUsd: 0.005 });
+    expect(ov.columns().length).toBe(2);
   });
 
   it('tölcsér: a legnagyobb lemorzsolódás lépése kiemelve, az idő emberi egységben', async () => {
-    const { c, el, fixture } = await setup();
+    const { c, el, fixture, child } = await setup();
     c.activeTab.set('tolcser');
     fixture.detectChanges();
-    expect(c.worstDrop()).toBe(2);
+    const t = child(ProjektmuhelyTolcserComponent);
+    expect(t.worstDrop()).toBe(2);
     expect(el.textContent).toContain('legnagyobb lemorzsolódás');
-    expect(c.fmtMinutes(35)).toBe('35 perc');
-    expect(c.fmtMinutes(130)).toBe('2.2 óra');
-    expect(c.fmtMinutes(null)).toBe('–');
-    expect([c.fmtUsd(0.00012), c.fmtUsd(0.05), c.fmtUsd(0), c.fmtUsd(3.456)]).toEqual(['$0.0001', '$0.050', '$0.00', '$3.46']);
+    expect(t.fmtMinutes(35)).toBe('35 perc');
+    expect(t.fmtMinutes(130)).toBe('2.2 óra');
+    expect(t.fmtMinutes(null)).toBe('–');
+    const usd = new UsdPipe();
+    expect([0.00012, 0.05, 0, 3.456].map((v) => usd.transform(v, 'fine'))).toEqual(['$0.0001', '$0.050', '$0.00', '$3.46']);
   });
 
   it('költség: időszakváltáskor újratölt', async () => {
-    const { c, api } = await setup();
-    await c.setDays(7);
+    const { c, api, fixture } = await setup();
+    c.setDays(7);
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(api.getOverview).toHaveBeenLastCalledWith(7);
     expect(api.getCosts).toHaveBeenLastCalledWith(7);
   });
@@ -86,7 +97,9 @@ describe('AdminProjektmuhelyComponent', () => {
     expect(tabLabels).toContain('Fejlesztőműhely');
     expect(tabLabels).not.toContain('Technikum');
     expect(api.getTechnikum).not.toHaveBeenCalled();
-    await c.selectTab('technikum');
+    c.selectTab('technikum');
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(api.getTechnikum).toHaveBeenCalledWith(30);
     const card = el.querySelector('[data-testid="technikum-konyvtar"]')!;
@@ -95,34 +108,45 @@ describe('AdminProjektmuhelyComponent', () => {
     expect(cells[0]).toContain('Konzolos alkalmazás');
     expect(cells.slice(1)).toEqual(['2 (2)', '60.0%', '50.0%', '0 (0)', '–', '–']);
 
-    await c.setDays(7);
+    c.setDays(7);
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(api.getTechnikum).toHaveBeenLastCalledWith(7);
   });
 
   it('technikum: a betöltés alatt töltésjelző, hibánál a BE üzenete (kikapcsolt modul) látszik', async () => {
     const { c, el, fixture, api } = await setup();
     api.getTechnikum.mockReturnValueOnce(throwError(() => ({ status: 404, error: { errorType: 'FeatureDisabled', errorMessage: 'A technikumi modul nincs bekapcsolva.' } })));
-    const pending = c.selectTab('technikum');
+    c.selectTab('technikum');
     expect(c.technikumLoading()).toBe(true);
-    await pending;
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(c.technikumLoading()).toBe(false);
     expect(el.textContent).toContain('A technikumi modul nincs bekapcsolva.');
     api.getTechnikum.mockReturnValueOnce(throwError(() => new Error('x')));
-    await c.setDays(14);
+    c.setDays(14);
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(c.error()).toBe('A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
   });
   it('technikum: gyors nap-váltásnál a később érkező régi válasz nem írja felül az újat', async () => {
-    const { c, api } = await setup();
-    await c.selectTab('technikum');
+    const { c, api, fixture } = await setup();
+    c.selectTab('technikum');
+    fixture.detectChanges();
+    await fixture.whenStable();
     const slow = new Subject<ProjectAdminTechnikumStats>();
     api.getTechnikum.mockReturnValueOnce(slow);
-    const first = c.setDays(7);
-    await c.setDays(90);
+    c.setDays(7);
+    fixture.detectChanges();
+    expect(api.getTechnikum).toHaveBeenLastCalledWith(7);
+    c.setDays(90);
+    fixture.detectChanges();
+    await fixture.whenStable();
     expect(c.technikum()?.days).toBe(90);
     slow.next({ ...technikum, days: 7 });
     slow.complete();
-    await first;
+    await fixture.whenStable();
     expect(c.technikum()?.days).toBe(90);
     expect(c.technikumLoading()).toBe(false);
   });

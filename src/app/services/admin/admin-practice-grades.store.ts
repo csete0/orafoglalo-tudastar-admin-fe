@@ -1,14 +1,15 @@
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, take } from 'rxjs/operators';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 import { AdminPracticeGradesService } from './admin-practice-grades.service';
 import { PracticeGradeOverview } from '../../models/practice-grades.model';
 import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 
-/** A „Gyakorló értékelések” lap állapota (AdminSchoolStore mintája). */
+/**
+ * A „Gyakorló értékelések” lap állapota (AdminSchoolStore mintája).
+ * Root store: az állapota oldalváltáskor szándékosan megmarad (owner-döntés, 2026-10-23).
+ */
 @Injectable({ providedIn: 'root' })
 export class AdminPracticeGradesStore {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly service = inject(AdminPracticeGradesService);
 
   private readonly _overview = signal<PracticeGradeOverview | null>(null);
@@ -34,7 +35,7 @@ export class AdminPracticeGradesStore {
 
     this.service
       .getOverview(days)
-      .pipe(take(1), finalize(() => this._loading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(finalize(() => this._loading.set(false)))
       .subscribe({
         next: (overview) => this._overview.set(overview),
         error: (err) => this._error.set(extractErrorMessage(err, 'A gyakorló értékelések betöltése nem sikerült.')),

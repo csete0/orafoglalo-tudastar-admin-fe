@@ -1,10 +1,8 @@
 <a routerLink="/users" class="back">← Vissza a kereséshez</a>
 
-@if (isLoading()) {
-  <p>Betöltés...</p>
-} @else if (errorMessage()) {
-  <p class="error">{{ errorMessage() }}</p>
-} @else if (user(); as u) {
+@if (user.error()) {
+  <p class="error">A felhasználó nem található.</p>
+} @else if (user.value(); as u) {
   <h1>{{ u.firstName }} {{ u.lastName }}</h1>
   <p class="email">{{ u.email }}</p>
 
@@ -56,209 +54,19 @@
   </section>
 
   @if (u.teacherProfile; as tp) {
-    <section>
-      <h2>Tanári profil</h2>
-      <dl>
-        <dt>Megjelenített név</dt><dd>{{ tp.displayName }}</dd>
-        <dt>Intézmény</dt><dd>{{ tp.institutionName ?? '-' }}</dd>
-        <dt>Állapot</dt><dd>{{ tp.isActive ? 'Aktív' : 'Letiltva' }}</dd>
-        <dt>Feladatsor-kvóta</dt>
-        <dd>{{ tp.actualTaskSetCount }} / {{ tp.maxTaskSets ?? 'korlátlan' }}</dd>
-        <dt>Tárhely-kvóta</dt>
-        <dd>{{ formatBytes(tp.actualStorageBytes) }} / {{ tp.maxStorageBytes ? formatBytes(tp.maxStorageBytes) : 'korlátlan' }}</dd>
-        <dt>Iskolái</dt><dd>{{ tp.schoolNames.join(', ') || '-' }}</dd>
-        <dt>Csoportjai</dt><dd>{{ tp.groupNames.join(', ') || '-' }}</dd>
-      </dl>
-    </section>
+    <section app-user-teacher-profile [profile]="tp"></section>
   }
-
-  <section>
-    <h2>Előfizetések</h2>
-    @if (u.subscriptions.length) {
-      <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Csomag</th><th>Állapot</th><th>Kezdet</th><th>Vég</th><th>AutoRenew</th><th>Ajándék</th></tr>
-        </thead>
-        <tbody>
-          @for (s of u.subscriptions; track s.id) {
-            <tr>
-              <td>{{ s.subscriptionTypeName }}</td>
-              <td>{{ s.status }}</td>
-              <td>{{ s.startDate }}</td>
-              <td>{{ s.endDate }}</td>
-              <td>{{ s.autoRenew ? 'Igen' : 'Nem' }}</td>
-              <td>{{ s.activatedViaGift ? 'Igen' : '-' }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      </div>
-    } @else {
-      <p class="empty">Nincs előfizetése.</p>
-    }
-  </section>
-
-  <section>
-    <h2>Fizetések</h2>
-    @if (u.payments.length) {
-      <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Dátum</th><th>Összeg</th><th>Állapot</th><th>Mód</th><th>Stripe</th></tr>
-        </thead>
-        <tbody>
-          @for (p of u.payments; track p.id) {
-            <tr [class.flagged]="p.needsManualReview">
-              <td>{{ p.paymentDate }}</td>
-              <td>{{ p.amount }} Ft</td>
-              <td>{{ p.status }}{{ p.refunded ? ' (visszatérítve)' : '' }}</td>
-              <td>{{ p.paymentMethod ?? '-' }}</td>
-              <td>
-                @if (p.stripePaymentIntentUrl) {
-                  <a [href]="p.stripePaymentIntentUrl" target="_blank" rel="noopener">Megnyitás</a>
-                } @else { - }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      </div>
-    } @else {
-      <p class="empty">Nincs fizetése.</p>
-    }
-  </section>
-
-  <section>
-    <h2>Csoporttagságok</h2>
-    @if (u.groupMemberships.length) {
-      <ul class="plain-list">
-        @for (g of u.groupMemberships; track g.groupId) {
-          <li>{{ g.groupName }} - csatlakozott: {{ g.joinedAt }}{{ g.removedAt ? (', kilépett: ' + g.removedAt) : '' }}</li>
-        }
-      </ul>
-    } @else {
-      <p class="empty">Nincs csoporttagsága.</p>
-    }
-  </section>
-
-  <section>
-    <h2>Szülői e-mailek</h2>
-    @if (u.parentEmails.length) {
-      <ul class="plain-list">
-        @for (p of u.parentEmails; track p.email) {
-          <li>{{ p.email }} {{ p.isVerified ? '(megerősítve)' : '(nincs megerősítve)' }}</li>
-        }
-      </ul>
-    } @else {
-      <p class="empty">Nincs regisztrált szülői e-mail.</p>
-    }
-  </section>
-
-  <section>
-    <h2>Projektműhely</h2>
-    @if (userProjects(); as projects) {
-      @if (projects.length) {
-        <div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>Projekt</th><th>Nyelv</th><th>Lépés</th><th>Teljesítve</th><th>Ellenőrzés</th><th>Tipp · hely · kód</th><th>AI (30 nap)</th><th>Utoljára</th></tr>
-          </thead>
-          <tbody>
-            @for (p of projects; track p.slug + p.runtime) {
-              <tr>
-                <td>{{ p.title }}{{ p.completedAt ? ' ✓ kész' : '' }}</td>
-                <td>{{ runtimeLabels[p.runtime] ?? p.runtime }}</td>
-                <td>{{ p.currentMilestoneOrder }}.</td>
-                <td>{{ p.passedCount }} / {{ p.milestoneCount }}</td>
-                <td>{{ p.checks }}</td>
-                <td>{{ p.hint1 }} · {{ p.hint2 }} · {{ p.hint3 }}</td>
-                <td>{{ '$' + p.aiCostUsd30.toFixed(p.aiCostUsd30 < 0.01 ? 4 : 3) }}</td>
-                <td>{{ p.lastActivityAt ? p.lastActivityAt.slice(0, 16).replace('T', ' ') : '-' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        </div>
-      } @else {
-        <p class="empty">Még nem kezdett projektet.</p>
-      }
-    } @else {
-      <p class="error">A Projektműhely-adatokat nem sikerült betölteni.</p>
-    }
-  </section>
-
-  <!-- Gyakorló értékelések (PATRICKS-GYAKORLO-ERTEKELES-TERV.md, 6b): a diák értékelései, a keret állása és a kézi jóváírás. -->
-  <section data-testid="practice-grades">
-    <h2>Gyakorló értékelések</h2>
-    @if (practice(); as pg) {
-      <dl>
-        <dt>Csomag</dt><dd>{{ tierLabels[pg.tier] ?? pg.tier }}</dd>
-        @for (q of pg.quotas; track q.kind) {
-          <dt>{{ kindLabels[q.kind] ?? q.kind }}</dt>
-          <dd data-testid="practice-quota">
-            ma {{ q.usedToday }} / {{ q.dailyLimit }}{{ q.creditToday ? ' (+' + q.creditToday + ' jóváírva)' : '' }}
-            @if (q.monthlyLimit !== null) { · a hónapban {{ q.usedThisMonth }} / {{ q.monthlyLimit }} }
-          </dd>
-        }
-      </dl>
-
-      @if (pg.quotas.length) {
-      <div class="actions credit">
-        <p class="credit-title">Kézi keret-jóváírás</p>
-        <div class="credit-form">
-          <select [(ngModel)]="creditKind" aria-label="Típus">
-            @for (q of pg.quotas; track q.kind) {
-              <option [value]="q.kind">{{ kindLabels[q.kind] ?? q.kind }}</option>
-            }
-          </select>
-          <input type="number" min="1" max="50" step="1" [(ngModel)]="creditAmount" aria-label="Darab" />
-          <input type="text" maxlength="300" [(ngModel)]="creditReason" placeholder="Indoklás (pl. support-jegy száma)" aria-label="Indoklás" />
-          <div class="action-buttons">
-            <button type="button" [disabled]="creditBusy() || !creditValid()" (click)="grantCredit()">Jóváírás</button>
-          </div>
-        </div>
-        @if (creditMessage()) {
-          <p class="action-message">{{ creditMessage() }}</p>
-        }
-      </div>
-      }
-
-      @if (pg.grades.length) {
-        <div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>Dátum</th><th>Típus</th><th>Feladat</th><th>Pont</th><th>Állapot</th><th>Költség</th></tr>
-          </thead>
-          <tbody>
-            @for (g of pg.grades; track g.id) {
-              <tr [class.flagged]="g.status === 'failed'">
-                <td>{{ g.createdAt | date: 'yyyy.MM.dd HH:mm' }}</td>
-                <td>{{ kindLabels[g.kind] ?? g.kind }}</td>
-                <td>{{ g.taskSetTitle }} – {{ g.taskTitle }}</td>
-                <td>{{ g.points !== null && g.max !== null ? g.points + ' / ' + g.max : '-' }}</td>
-                <td>{{ g.status }}</td>
-                <td>{{ g.costUsd !== null ? '$' + g.costUsd.toFixed(4) : '-' }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        </div>
-      } @else {
-        <p class="empty">Még nem kért gyakorló értékelést.</p>
-      }
-
-      @if (pg.credits?.length) {
-        <ul class="plain-list credits">
-          @for (c of pg.credits; track $index) {
-            <li>{{ c.createdAt | date: 'yyyy.MM.dd HH:mm' }} · +{{ c.amount }} {{ kindLabels[c.kind] ?? c.kind }} · {{ c.adminEmail }} · {{ c.reason }}</li>
-          }
-        </ul>
-      }
-    } @else if (practice() === null) {
-      <p class="error">A gyakorló értékeléseket nem sikerült betölteni.</p>
-    } @else {
-      <p class="empty">Betöltés...</p>
-    }
-  </section>
+  <section app-user-subscriptions [subscriptions]="u.subscriptions"></section>
+  <section app-user-payments [payments]="u.payments"></section>
+  <app-user-groups-parents [memberships]="u.groupMemberships" [parentEmails]="u.parentEmails" />
+  <section app-user-projects [projects]="projects()"></section>
+  <section
+    data-testid="practice-grades"
+    app-user-practice
+    [userId]="userId()"
+    [practice]="practice()"
+    (credited)="practiceResource.set($event)"
+  ></section>
+} @else {
+  <p>Betöltés...</p>
 }

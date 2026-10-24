@@ -4,11 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AdminPracticeGradesStore } from '../../services/admin/admin-practice-grades.store';
 import { PRACTICE_KIND_LABELS, PRACTICE_TIER_LABELS, PracticeGradeBucket } from '../../models/practice-grades.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
-
-/** Dollár-összeg az AI-költés pult formájában ($0.012 / $1.25). */
-export function fmtUsd(v: number): string {
-  return '$' + v.toFixed(v < 1 ? 3 : 2);
-}
+import { UsdPipe } from '../../shared/format/usd.pipe';
 
 /**
  * Gyakorló értékelések (PATRICKS-GYAKORLO-ERTEKELES-TERV.md, 6b): napi/havi darab és költség típusonként (kód/SQL/irodai)
@@ -18,8 +14,7 @@ export function fmtUsd(v: number): string {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-gyakorlo-ertekelesek',
-  standalone: true,
-  imports: [DatePipe, PercentPipe, RouterLink, LocalSpinnerComponent],
+  imports: [DatePipe, PercentPipe, RouterLink, LocalSpinnerComponent, UsdPipe],
   template: `
     <div class="max-w-6xl">
       <p class="text-xs font-bold text-text-muted uppercase tracking-wide mb-1">Platform-admin</p>
@@ -43,7 +38,7 @@ export function fmtUsd(v: number): string {
       } @else if (store.overview(); as o) {
         <div class="grid gap-3 grid-cols-2 md:grid-cols-4 mb-6" data-testid="practice-kpis">
           <div class="card p-4"><p class="text-xs text-text-muted">Értékelés ({{ o.days }} nap)</p><p class="text-2xl font-bold tabular-nums">{{ o.totalCount }}</p></div>
-          <div class="card p-4"><p class="text-xs text-text-muted">Költség ({{ o.days }} nap)</p><p class="text-2xl font-bold tabular-nums">{{ usd(o.totalCostUsd) }}</p></div>
+          <div class="card p-4"><p class="text-xs text-text-muted">Költség ({{ o.days }} nap)</p><p class="text-2xl font-bold tabular-nums">{{ o.totalCostUsd | usd }}</p></div>
           <div class="card p-4"><p class="text-xs text-text-muted">Hibás (Failed)</p>
             <p class="text-2xl font-bold tabular-nums" [class.text-danger]="(store.failedRate() ?? 0) >= failedAlert" data-testid="practice-failed-rate">
               {{ store.failedRate() === null ? '–' : (store.failedRate() | percent: '1.0-1') }}
@@ -68,9 +63,9 @@ export function fmtUsd(v: number): string {
                       <tr class="border-t border-border-default">
                         <td class="py-1.5 pr-3">{{ table.labels[b.key] ?? b.key }}</td>
                         <td class="pr-3 text-right tabular-nums">{{ b.today.count }}</td>
-                        <td class="pr-3 text-right tabular-nums">{{ usd(b.today.costUsd) }}</td>
+                        <td class="pr-3 text-right tabular-nums">{{ b.today.costUsd | usd }}</td>
                         <td class="pr-3 text-right tabular-nums">{{ b.month.count }}</td>
-                        <td class="text-right tabular-nums">{{ usd(b.month.costUsd) }}</td>
+                        <td class="text-right tabular-nums">{{ b.month.costUsd | usd }}</td>
                       </tr>
                     } @empty {
                       <tr><td colspan="5" class="py-3 text-text-muted">Még nem volt gyakorló értékelés.</td></tr>
@@ -119,7 +114,7 @@ export function fmtUsd(v: number): string {
                 <div class="grid grid-cols-[6.5rem_1fr_7rem] items-center gap-3 text-sm">
                   <span class="tabular-nums">{{ d.date | date: 'yyyy.MM.dd.' }}</span>
                   <span class="h-2 rounded-full bg-bg-element overflow-hidden"><span class="block h-full bg-primary" [style.width.%]="dayWidth(d.count)"></span></span>
-                  <span class="text-right tabular-nums">{{ d.count }}@if (d.failed) { <span class="text-danger"> ({{ d.failed }}✗)</span> } · {{ usd(d.costUsd) }}</span>
+                  <span class="text-right tabular-nums">{{ d.count }}@if (d.failed) { <span class="text-danger"> ({{ d.failed }}✗)</span> } · {{ d.costUsd | usd }}</span>
                 </div>
               } @empty {
                 <p class="text-sm text-text-muted">Nincs adat ebben az időszakban.</p>
@@ -145,7 +140,7 @@ export function fmtUsd(v: number): string {
                       <td class="pr-3">{{ tierLabels[u.tier] ?? u.tier }}</td>
                       <td class="pr-3 text-right tabular-nums font-semibold">{{ u.count }}</td>
                       <td class="pr-3 text-right tabular-nums">{{ u.failed }}</td>
-                      <td class="pr-3 text-right tabular-nums">{{ usd(u.costUsd) }}</td>
+                      <td class="pr-3 text-right tabular-nums">{{ u.costUsd | usd }}</td>
                       <td class="text-right whitespace-nowrap">{{ u.lastAt | date: 'MM.dd. HH:mm' }}</td>
                     </tr>
                   } @empty {
@@ -168,7 +163,6 @@ export class AdminGyakorloErtekelesekComponent implements OnInit {
   readonly failedAlert = 0.1;
   readonly kindLabels = PRACTICE_KIND_LABELS;
   readonly tierLabels = PRACTICE_TIER_LABELS;
-  readonly usd = fmtUsd;
 
   readonly bucketTables = computed(() => {
     const o = this.store.overview();

@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface AdminPaymentListItem {
@@ -37,13 +37,13 @@ export interface PaymentFilter {
 export class PaymentService {
   private readonly http = inject(HttpClient);
 
-  async getPage(filter: PaymentFilter): Promise<AdminPaymentPage> {
+  getPage(filter: PaymentFilter): Observable<AdminPaymentPage> {
     let params = new HttpParams().set('page', filter.page).set('pageSize', filter.pageSize);
     if (filter.query) params = params.set('query', filter.query);
     if (filter.status) params = params.set('status', filter.status);
     if (filter.refunded !== undefined) params = params.set('refunded', filter.refunded);
     if (filter.needsManualReview !== undefined) params = params.set('needsManualReview', filter.needsManualReview);
 
-    return firstValueFrom(this.http.get<AdminPaymentPage>(`${environment.apiUrl}/payments`, { params }));
+    return this.http.get<AdminPaymentPage>(`${environment.apiUrl}/payments`, { params });
   }
 }

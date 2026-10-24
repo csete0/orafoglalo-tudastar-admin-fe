@@ -35,12 +35,20 @@ describe('AdminCsapatokComponent', () => {
   it('részletek: ágak; újrapróbálás és leválasztás megerősítéssel, utána újratölt', async () => {
     const { fixture, c, el, api, confirm } = setup();
     await fixture.whenStable();
-    await c.open(row);
-    fixture.detectChanges();
+    // A részlet és a lista rxResource: a betöltés a változás-észleléskor indul, az érték egy makrotask-kör után érkezik.
+    const settle = async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    c.open(row);
+    await settle();
     expect(el.textContent).toContain('main');
-    await c.retry(row);
+    c.retry(row);
+    await settle();
     expect(api.retryMirror).toHaveBeenCalledWith(5);
     await c.unlink(row);
+    await settle();
     expect(confirm.ask).toHaveBeenCalledWith(expect.objectContaining({ danger: true }));
     expect(api.unlink).toHaveBeenCalledWith(5);
     expect(api.search).toHaveBeenCalledTimes(3);

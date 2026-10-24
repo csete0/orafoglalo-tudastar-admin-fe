@@ -8,11 +8,7 @@
 <ul class="upcoming">
   @for (item of items; track item.label) {
     <li>
-      @if (item.route) {
-        <a [routerLink]="item.route" class="label">{{ item.label }}</a>
-      } @else {
-        <span class="label disabled">{{ item.label }}</span>
-      }
+      <a [routerLink]="item.path" class="label">{{ item.label }}</a>
       <span class="note">{{ item.note }}</span>
     </li>
   }

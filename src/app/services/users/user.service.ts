@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface UserSearchResult {
@@ -97,28 +97,28 @@ export interface UserDetail {
 export class UserService {
   private readonly http = inject(HttpClient);
 
-  async search(filter: UserSearchFilter): Promise<UserSearchPage> {
+  search(filter: UserSearchFilter): Observable<UserSearchPage> {
     let params = new HttpParams().set('page', filter.page).set('pageSize', filter.pageSize);
     if (filter.query) params = params.set('query', filter.query);
     if (filter.role) params = params.set('role', filter.role);
     if (filter.subscriptionStatus) params = params.set('subscriptionStatus', filter.subscriptionStatus);
 
-    return firstValueFrom(this.http.get<UserSearchPage>(`${environment.apiUrl}/users`, { params }));
+    return this.http.get<UserSearchPage>(`${environment.apiUrl}/users`, { params });
   }
 
-  async getDetail(id: number): Promise<UserDetail> {
-    return firstValueFrom(this.http.get<UserDetail>(`${environment.apiUrl}/users/${id}`));
+  getDetail(id: number): Observable<UserDetail> {
+    return this.http.get<UserDetail>(`${environment.apiUrl}/users/${id}`);
   }
 
-  async unlock(id: number): Promise<void> {
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/users/${id}/unlock`, {}));
+  unlock(id: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/users/${id}/unlock`, {});
   }
 
-  async resendConfirmation(id: number): Promise<void> {
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/users/${id}/resend-confirmation`, {}));
+  resendConfirmation(id: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/users/${id}/resend-confirmation`, {});
   }
 
-  async confirmEmailManually(id: number): Promise<void> {
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/users/${id}/confirm-email`, {}));
+  confirmEmailManually(id: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/users/${id}/confirm-email`, {});
   }
 }

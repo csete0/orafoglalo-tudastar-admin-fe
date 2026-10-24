@@ -1,31 +1,27 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
 import { AdminCouponService } from '../../services/admin/admin-coupon.service';
-import { CouponAdminDto, CouponCreateRequest, SubscriptionTypeOption } from '../../models/coupon.model';
+import { CouponAdminDto } from '../../models/coupon.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
-
-function extractErrorMessage(err: any, fallback: string): string {
-  const body = err?.error;
-  if (typeof body?.errorMessage === 'string' && body.errorMessage.trim()) {
-    return body.errorMessage;
-  }
-  return fallback;
-}
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
+import { latestValue } from '../../shared/resource/latest-value';
+import { CouponCreateFormComponent } from './kuponok/coupon-create-form.component';
 
 /**
  * B3: kuponkódok kezelése (platform-admin). A kedvezmény két formája - százalék VAGY fix
  * Ft - közül pontosan az egyiket kell megadni; a többi (érvényesség, limit, csomag) opcionális.
  * A validáció a szerveren fut (CouponService.CreateAsync), a hibaüzenetet változtatás nélkül
  * mutatjuk. Törlés nincs: a beváltott kuponhoz Payment-sor tartozik, ezért csak inaktiválás.
+ * Az „Új kupon” űrlap a `CouponCreateFormComponent`-ben van.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-kuponok',
-  standalone: true,
-  imports: [DatePipe, FormsModule, LocalSpinnerComponent],
+  imports: [DatePipe, LocalSpinnerComponent, CouponCreateFormComponent],
   template: `
     <div class="max-w-5xl">
       <h1 class="page-title">Kuponok</h1>
@@ -35,90 +31,7 @@ function extractErrorMessage(err: any, fallback: string): string {
       </p>
       <div class="hairline"></div>
 
-      <form (ngSubmit)="create()" class="card p-5 mb-6" novalidate>
-        <h2 class="font-bold mb-3">Új kupon</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="sm:col-span-2">
-            <label class="text-xs text-text-muted block mb-1" for="code">Kód</label>
-            <input id="code" name="code" [(ngModel)]="form.code" class="input font-mono uppercase"
-              maxlength="32" placeholder="pl. ISKOLA2026" autocomplete="off" required />
-            <p class="text-xs text-text-muted mt-1">Csak betű és szám, max. 32 karakter - a rendszer nagybetűsíti.</p>
-          </div>
-
-          <div>
-            <label class="text-xs text-text-muted block mb-1">Kedvezmény típusa</label>
-            <div class="flex gap-2 text-sm">
-              <button type="button" (click)="setKind('percent')"
-                class="px-3 py-1.5 rounded-lg border font-semibold transition-colors"
-                [class.bg-primary]="kind() === 'percent'" [class.text-white]="kind() === 'percent'"
-                [class.border-primary]="kind() === 'percent'"
-                [class.border-border-default]="kind() !== 'percent'" [class.text-text-muted]="kind() !== 'percent'">
-                Százalék
-              </button>
-              <button type="button" (click)="setKind('amount')"
-                class="px-3 py-1.5 rounded-lg border font-semibold transition-colors"
-                [class.bg-primary]="kind() === 'amount'" [class.text-white]="kind() === 'amount'"
-                [class.border-primary]="kind() === 'amount'"
-                [class.border-border-default]="kind() !== 'amount'" [class.text-text-muted]="kind() !== 'amount'">
-                Fix összeg (Ft)
-              </button>
-            </div>
-          </div>
-          <div>
-            @if (kind() === 'percent') {
-              <label class="text-xs text-text-muted block mb-1" for="percentOff">Kedvezmény (%)</label>
-              <input id="percentOff" name="percentOff" type="number" min="1" max="100" [(ngModel)]="form.percentOff"
-                class="input" placeholder="1–100" />
-            } @else {
-              <label class="text-xs text-text-muted block mb-1" for="amountOffHuf">Kedvezmény (Ft)</label>
-              <input id="amountOffHuf" name="amountOffHuf" type="number" min="1" [(ngModel)]="form.amountOffHuf"
-                class="input" placeholder="pl. 1000" />
-            }
-          </div>
-
-          <div>
-            <label class="text-xs text-text-muted block mb-1" for="validFrom">Érvényes ettől</label>
-            <input id="validFrom" name="validFrom" type="date" [(ngModel)]="form.validFrom" class="input" />
-            <p class="text-xs text-text-muted mt-1">Üresen: azonnal.</p>
-          </div>
-          <div>
-            <label class="text-xs text-text-muted block mb-1" for="validTo">Érvényes eddig</label>
-            <input id="validTo" name="validTo" type="date" [(ngModel)]="form.validTo" class="input" />
-            <p class="text-xs text-text-muted mt-1">Üresen: nincs lejárat.</p>
-          </div>
-
-          <div>
-            <label class="text-xs text-text-muted block mb-1" for="maxRedemptions">Beváltási limit</label>
-            <input id="maxRedemptions" name="maxRedemptions" type="number" min="1" [(ngModel)]="form.maxRedemptions"
-              class="input" placeholder="Üresen: korlátlan" />
-          </div>
-          <div>
-            <label class="text-xs text-text-muted block mb-1" for="subscriptionTypeId">Csomag</label>
-            <select id="subscriptionTypeId" name="subscriptionTypeId" [(ngModel)]="form.subscriptionTypeId" class="input">
-              <option [ngValue]="null">Bármelyik fizetős csomag</option>
-              @for (type of subscriptionTypes(); track type.id) {
-                <option [ngValue]="type.id">{{ typeLabel(type) }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="sm:col-span-2">
-            <label class="text-xs text-text-muted block mb-1" for="note">Megjegyzés (belső)</label>
-            <input id="note" name="note" [(ngModel)]="form.note" class="input" maxlength="200"
-              placeholder="pl. Teszt Gimnázium szülői est 2026 ősz" />
-          </div>
-        </div>
-
-        @if (formError()) {
-          <p class="text-danger text-sm mt-3" role="alert">{{ formError() }}</p>
-        }
-
-        <div class="flex justify-end mt-4">
-          <button type="submit" [disabled]="pending() || !canSubmit()" class="btn btn-primary !px-4 !py-2">
-            Kupon létrehozása
-          </button>
-        </div>
-      </form>
+      <app-coupon-create-form [subscriptionTypes]="subscriptionTypes()" [(pending)]="pending" (created)="onCreated($event)" />
 
       <div class="flex gap-2 mb-4 text-sm flex-wrap">
         @for (option of filterOptions; track option.value) {
@@ -188,19 +101,29 @@ function extractErrorMessage(err: any, fallback: string): string {
     </div>
   `,
 })
-export class AdminKuponokComponent implements OnInit {
+export class AdminKuponokComponent {
   private readonly svc = inject(AdminCouponService);
   private readonly toast = inject(ToastService);
   private readonly confirmService = inject(ConfirmService);
 
-  readonly coupons = signal<CouponAdminDto[]>([]);
-  readonly subscriptionTypes = signal<SubscriptionTypeOption[]>([]);
-  readonly loading = signal(false);
+  private readonly couponsResource = rxResource({ stream: () => this.svc.list() });
+  /** A betöltött lista; a létrehozás és az inaktiválás helyben frissíti. */
+  private readonly latestCoupons = latestValue(this.couponsResource);
+  readonly coupons = computed(() => this.latestCoupons() ?? []);
+  readonly loading = this.couponsResource.isLoading;
+  readonly error = computed(() => (this.couponsResource.error() ? 'A kuponok betöltése sikertelen.' : null));
+
+  /** A `free` csomagra kupon nem adható (a szerver is elutasítja) - a listából kihagyjuk; hibánál üres. */
+  readonly subscriptionTypes = toSignal(
+    this.svc.subscriptionTypes().pipe(
+      map((types) => types.filter((t) => t.price > 0)),
+      catchError(() => of([])),
+    ),
+    { initialValue: [] },
+  );
+
   readonly pending = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly formError = signal<string | null>(null);
   readonly onlyActive = signal(true);
-  readonly kind = signal<'percent' | 'amount'>('percent');
 
   readonly filterOptions = [
     { value: true, label: 'Csak aktívak' },
@@ -210,33 +133,6 @@ export class AdminKuponokComponent implements OnInit {
   readonly visibleCoupons = computed(() =>
     this.onlyActive() ? this.coupons().filter((c) => c.isActive) : this.coupons(),
   );
-
-  form = this.emptyForm();
-
-  ngOnInit(): void {
-    this.load();
-    this.svc.subscriptionTypes().subscribe({
-      // A `free` csomagra kupon nem adható (a szerver is elutasítja) - a listából kihagyjuk.
-      next: (types) => this.subscriptionTypes.set(types.filter((t) => t.price > 0)),
-      error: () => this.subscriptionTypes.set([]),
-    });
-  }
-
-  setKind(kind: 'percent' | 'amount'): void {
-    this.kind.set(kind);
-    if (kind === 'percent') this.form.amountOffHuf = null;
-    else this.form.percentOff = null;
-  }
-
-  canSubmit(): boolean {
-    const hasDiscount = this.kind() === 'percent' ? !!this.form.percentOff : !!this.form.amountOffHuf;
-    return !!this.form.code.trim() && hasDiscount;
-  }
-
-  typeLabel(type: SubscriptionTypeOption): string {
-    const cycle = type.billingCycle === 'yearly' ? 'éves' : type.billingCycle === 'monthly' ? 'havi' : type.billingCycle;
-    return `${type.name} (${cycle}, ${type.price.toLocaleString('hu-HU')} Ft)`;
-  }
 
   discountLabel(coupon: CouponAdminDto): string {
     if (coupon.percentOff !== null) return `${coupon.percentOff}% kedvezmény`;
@@ -251,35 +147,8 @@ export class AdminKuponokComponent implements OnInit {
     return !!coupon.validTo && new Date(coupon.validTo) < new Date();
   }
 
-  create(): void {
-    if (!this.canSubmit() || this.pending()) return;
-    this.formError.set(null);
-    this.pending.set(true);
-
-    const request: CouponCreateRequest = {
-      code: this.form.code.trim(),
-      percentOff: this.kind() === 'percent' ? this.form.percentOff : null,
-      amountOffHuf: this.kind() === 'amount' ? this.form.amountOffHuf : null,
-      // A <input type="date"> helyi naptári napot ad - a lejárat a nap VÉGÉIG él.
-      validFrom: this.form.validFrom ? new Date(`${this.form.validFrom}T00:00:00`).toISOString() : null,
-      validTo: this.form.validTo ? new Date(`${this.form.validTo}T23:59:59`).toISOString() : null,
-      maxRedemptions: this.form.maxRedemptions || null,
-      subscriptionTypeId: this.form.subscriptionTypeId,
-      note: this.form.note.trim() || null,
-    };
-
-    this.svc.create(request).subscribe({
-      next: (created) => {
-        this.pending.set(false);
-        this.coupons.update((list) => [created, ...list]);
-        this.form = this.emptyForm();
-        this.toast.success(`Kupon létrehozva: ${created.code}`);
-      },
-      error: (err) => {
-        this.pending.set(false);
-        this.formError.set(extractErrorMessage(err, 'A kupon létrehozása sikertelen.'));
-      },
-    });
+  onCreated(coupon: CouponAdminDto): void {
+    this.latestCoupons.update((list) => [coupon, ...(list ?? [])]);
   }
 
   async deactivate(coupon: CouponAdminDto): Promise<void> {
@@ -296,41 +165,13 @@ export class AdminKuponokComponent implements OnInit {
     this.svc.deactivate(coupon.id).subscribe({
       next: (updated) => {
         this.pending.set(false);
-        this.coupons.update((list) => list.map((c) => (c.id === updated.id ? updated : c)));
+        this.latestCoupons.update((list) => list?.map((c) => (c.id === updated.id ? updated : c)));
         this.toast.success('Kupon inaktiválva.');
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.pending.set(false);
         this.toast.danger(extractErrorMessage(err, 'Hiba történt.'));
       },
     });
-  }
-
-  private load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.svc.list().subscribe({
-      next: (data) => {
-        this.coupons.set(data);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('A kuponok betöltése sikertelen.');
-        this.loading.set(false);
-      },
-    });
-  }
-
-  private emptyForm() {
-    return {
-      code: '',
-      percentOff: null as number | null,
-      amountOffHuf: null as number | null,
-      validFrom: '',
-      validTo: '',
-      maxRedemptions: null as number | null,
-      subscriptionTypeId: null as number | null,
-      note: '',
-    };
   }
 }

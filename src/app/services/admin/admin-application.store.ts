@@ -1,13 +1,12 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, take } from 'rxjs/operators';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 import { AdminApplicationService } from './admin-application.service';
 import { RejectTeacherApplicationRequest, TeacherApplicationAdminDto } from '../../models/teacher-application.model';
 import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
 
+// Root store: az állapota oldalváltáskor szándékosan megmarad (owner-döntés, 2026-10-23).
 @Injectable({ providedIn: 'root' })
 export class AdminApplicationStore {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly service = inject(AdminApplicationService);
 
   private readonly _applications = signal<TeacherApplicationAdminDto[]>([]);
@@ -32,10 +31,10 @@ export class AdminApplicationStore {
   // response race fixek a testvér orafoglalo-tudastar-fe repóban.
   private _loadGeneration = 0;
 
-  readonly applications = computed(() => this._applications());
+  readonly applications = this._applications.asReadonly();
   readonly loading = computed(() => this._inFlight().size > 0);
-  readonly error = computed(() => this._error());
-  readonly statusFilter = computed(() => this._statusFilter());
+  readonly error = this._error.asReadonly();
+  readonly statusFilter = this._statusFilter.asReadonly();
 
   setStatusFilter(status: 'pending' | 'approved' | 'rejected' | 'all'): void {
     this._statusFilter.set(status);
@@ -52,7 +51,6 @@ export class AdminApplicationStore {
     this.service
       .getApplications(this._statusFilter())
       .pipe(
-        take(1),
         finalize(() => {
           this._inFlight.update((prev) => {
             const next = new Set(prev);
@@ -60,7 +58,6 @@ export class AdminApplicationStore {
             return next;
           });
         }),
-        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: (applications) => {
@@ -82,11 +79,7 @@ export class AdminApplicationStore {
 
     this.service
       .approve(id)
-      .pipe(
-        take(1),
-        finalize(() => this._end(key)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end(key)))
       .subscribe({
         next: () => {
           this._applications.update((list) => list.filter((a) => a.id !== id));
@@ -108,11 +101,7 @@ export class AdminApplicationStore {
 
     this.service
       .reject(id, request)
-      .pipe(
-        take(1),
-        finalize(() => this._end(key)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end(key)))
       .subscribe({
         next: () => {
           this._applications.update((list) => list.filter((a) => a.id !== id));

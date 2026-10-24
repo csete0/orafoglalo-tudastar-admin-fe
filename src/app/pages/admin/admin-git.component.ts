@@ -1,16 +1,21 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { FormsModule, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { Observable, finalize } from 'rxjs';
 import { AdminGitService } from '../../services/admin/admin-git.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
+import { latestValue } from '../../shared/resource/latest-value';
+import { reportErrors } from '../../shared/resource/report-errors';
 import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.model';
+
+const ACTION_ERROR = 'A művelet nem sikerült.';
 
 /** Git-adminisztráció (PATRICKS-FEJLESZTOMUHELY-BC-TERV.md 2.2, 4.): kvóták és tárolók (zár visszaélésnél, törlés). */
 @Component({
   selector: 'app-admin-git',
-  standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, ReactiveFormsModule, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-5xl">
@@ -23,26 +28,26 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
 
       @if (error()) { <p class="text-danger text-sm mb-4" role="alert">{{ error() }}</p> }
 
-      <form class="card p-5 mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4" #quotaForm="ngForm" (ngSubmit)="quotaForm.valid && saveQuota()" data-testid="git-quota">
+      <form class="card p-5 mb-6 grid grid-cols-2 sm:grid-cols-3 gap-4" [formGroup]="form" (ngSubmit)="form.valid && saveQuota()" data-testid="git-quota">
         <h2 class="col-span-full font-bold">Kvóták</h2>
         <label class="text-sm min-w-0">Tároló mérete (MB)
-          <input class="input w-full" type="number" min="1" max="500" required name="repoMaxMb" [(ngModel)]="form.repoMaxMb" /></label>
+          <input class="input w-full" type="number" min="1" max="500" name="repoMaxMb" formControlName="repoMaxMb" /></label>
         <label class="text-sm min-w-0">Saját tároló / diák
-          <input class="input w-full" type="number" min="1" max="200" required name="reposPerUser" [(ngModel)]="form.reposPerUser" /></label>
+          <input class="input w-full" type="number" min="1" max="200" name="reposPerUser" formControlName="reposPerUser" /></label>
         <label class="text-sm min-w-0">Fájlméret (MB)
-          <input class="input w-full" type="number" min="1" max="100" required name="fileMaxMb" [(ngModel)]="form.fileMaxMb" /></label>
+          <input class="input w-full" type="number" min="1" max="100" name="fileMaxMb" formControlName="fileMaxMb" /></label>
         <label class="text-sm min-w-0">Push / perc
-          <input class="input w-full" type="number" min="1" max="120" required name="pushesPerMinute" [(ngModel)]="form.pushesPerMinute" /></label>
+          <input class="input w-full" type="number" min="1" max="120" name="pushesPerMinute" formControlName="pushesPerMinute" /></label>
         <label class="text-sm min-w-0">Klón / perc
-          <input class="input w-full" type="number" min="1" max="600" required name="clonesPerMinute" [(ngModel)]="form.clonesPerMinute" /></label>
+          <input class="input w-full" type="number" min="1" max="600" name="clonesPerMinute" formControlName="clonesPerMinute" /></label>
         <label class="text-sm min-w-0">.git-mentés (MB)
-          <input class="input w-full" type="number" min="1" max="50" required name="snapshotMaxMb" [(ngModel)]="form.snapshotMaxMb" /></label>
+          <input class="input w-full" type="number" min="1" max="50" name="snapshotMaxMb" formControlName="snapshotMaxMb" /></label>
         <label class="text-sm min-w-0">Csapattároló mérete (MB)
-          <input class="input w-full" type="number" min="1" max="500" required name="teamRepoMaxMb" [(ngModel)]="form.teamRepoMaxMb" /></label>
+          <input class="input w-full" type="number" min="1" max="500" name="teamRepoMaxMb" formControlName="teamRepoMaxMb" /></label>
         <p class="col-span-full text-xs text-text-muted">A saját tárolók számába csak a projekt-tárolók számítanak, a gyakorlók nem.</p>
         <div class="col-span-full flex flex-wrap items-center gap-3">
-          <button class="btn btn-primary" type="submit" data-testid="git-quota-save" [disabled]="busy() || quotaForm.invalid">Mentés</button>
-          @if (quotaForm.invalid) { <span class="text-xs text-danger">Minden mező kitöltendő, a megadott határokon belül.</span> }
+          <button class="btn btn-primary" type="submit" data-testid="git-quota-save" [disabled]="busy() || form.invalid">Mentés</button>
+          @if (form.invalid) { <span class="text-xs text-danger">Minden mező kitöltendő, a megadott határokon belül.</span> }
           @if (quota(); as q) { <span class="text-xs text-text-muted">Utoljára módosítva: {{ q.updatedAt | date: 'yyyy.MM.dd. HH:mm' }}</span> }
         </div>
       </form>
@@ -83,26 +88,46 @@ import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.mod
     </div>
   `,
 })
-export class AdminGitComponent implements OnInit {
+export class AdminGitComponent {
   private readonly api = inject(AdminGitService);
   private readonly confirm = inject(ConfirmService);
+  private readonly fb = inject(NonNullableFormBuilder);
 
   readonly quota = signal<GitQuota | null>(null);
-  readonly repos = signal<GitAdminRepo[]>([]);
   readonly query = signal('');
   readonly lockReason = signal('');
-  readonly busy = signal(false);
+  /** Egy közös hibasor: minden betöltés és művelet induláskor törli, hibánál a sajátját írja ki. */
   readonly error = signal<string | null>(null);
-  form = { repoMaxMb: 50, reposPerUser: 20, fileMaxMb: 5, pushesPerMinute: 6, clonesPerMinute: 20, snapshotMaxMb: 10, teamRepoMaxMb: 50 };
 
-  async ngOnInit(): Promise<void> {
-    await this.run(async () => {
-      const q = await firstValueFrom(this.api.getQuota());
-      this.form = { repoMaxMb: q.repoMaxMb, reposPerUser: q.reposPerUser, fileMaxMb: q.fileMaxMb, pushesPerMinute: q.pushesPerMinute,
-        clonesPerMinute: q.clonesPerMinute, snapshotMaxMb: q.snapshotMaxMb, teamRepoMaxMb: q.teamRepoMaxMb };
+  /** A határok a BE-validációé; az üres mező érvénytelen, így mentéskor minden érték szám. */
+  readonly form = this.fb.group({
+    repoMaxMb: [50, bounded(500)],
+    reposPerUser: [20, bounded(200)],
+    fileMaxMb: [5, bounded(100)],
+    pushesPerMinute: [6, bounded(120)],
+    clonesPerMinute: [20, bounded(600)],
+    snapshotMaxMb: [10, bounded(50)],
+    teamRepoMaxMb: [50, bounded(500)],
+  });
+
+  /** A keresés kérése: minden keresés új objektum, így ugyanarra a szóra is újratölt. */
+  private readonly searchRequest = signal({ q: '' });
+  private readonly reposResource = rxResource({
+    params: () => this.searchRequest(),
+    stream: ({ params }) => reportErrors(this.api.searchRepos(params.q), this.error, (err) => extractErrorMessage(err, ACTION_ERROR)),
+  });
+  /** Keresés közben és hiba után a korábbi találatok maradnak. */
+  private readonly latestRepos = latestValue(this.reposResource);
+  readonly repos = computed(() => this.latestRepos() ?? []);
+
+  private readonly actionBusy = signal(false);
+  readonly busy = computed(() => this.actionBusy() || this.reposResource.isLoading());
+
+  constructor() {
+    this.run(this.api.getQuota(), (q) => {
+      this.form.patchValue(q);
       this.quota.set(q);
     });
-    await this.search();
   }
 
   /** A tároló gazdája: a diák e-mailje, csapattárolónál a csapat azonosítója. */
@@ -121,11 +146,11 @@ export class AdminGitComponent implements OnInit {
       message: 'A kvóták legfeljebb fél percen belül érvényesek; a méret-korlátot a meglévő tárolókra 5 percen belül telepíti a rendszer.',
       confirmLabel: 'Mentés',
     }))) return;
-    await this.run(async () => this.quota.set(await firstValueFrom(this.api.updateQuota(this.form))));
+    this.run(this.api.updateQuota(this.form.getRawValue()), (q) => this.quota.set(q));
   }
 
-  async search(): Promise<void> {
-    await this.run(async () => this.repos.set(await firstValueFrom(this.api.searchRepos(this.query().trim()))));
+  search(): void {
+    this.searchRequest.set({ q: this.query().trim() });
   }
 
   async lock(r: GitAdminRepo): Promise<void> {
@@ -140,9 +165,10 @@ export class AdminGitComponent implements OnInit {
       confirmLabel: 'Zárolás',
       danger: true,
     }))) return;
-    if (!(await this.run(() => firstValueFrom(this.api.lock(r.id, reason))))) return;
-    this.lockReason.set('');
-    await this.search();
+    this.run(this.api.lock(r.id, reason), () => {
+      this.lockReason.set('');
+      this.search();
+    });
   }
 
   async unlock(r: GitAdminRepo): Promise<void> {
@@ -151,7 +177,7 @@ export class AdminGitComponent implements OnInit {
       message: `A(z) „${r.name}” tároló (${this.owner(r)}) zárolása feloldódik${r.lockReason ? ` (ok volt: „${r.lockReason}”)` : ''}.`,
       confirmLabel: 'Feloldás',
     }))) return;
-    if (await this.run(() => firstValueFrom(this.api.unlock(r.id)))) await this.search();
+    this.run(this.api.unlock(r.id), () => this.search());
   }
 
   async remove(r: GitAdminRepo): Promise<void> {
@@ -161,21 +187,21 @@ export class AdminGitComponent implements OnInit {
       confirmLabel: 'Törlés',
       danger: true,
     }))) return;
-    if (await this.run(() => firstValueFrom(this.api.remove(r.id)))) await this.search();
+    this.run(this.api.remove(r.id), () => this.search());
   }
 
-  /** true, ha a művelet sikerült (hibánál nincs újratöltés, hogy az üzenet látsszon); hibánál a szerver magyar üzenete (ErrorModel.errorMessage) jelenik meg. */
-  private async run(action: () => Promise<unknown>): Promise<boolean> {
-    this.busy.set(true);
+  /** Sikernél `onSuccess` (hibánál nincs újratöltés, hogy az üzenet látsszon); hibánál a szerver magyar üzenete jelenik meg. */
+  private run<T>(action: Observable<T>, onSuccess: (value: T) => void): void {
+    this.actionBusy.set(true);
     this.error.set(null);
-    try {
-      await action();
-      return true;
-    } catch (e: unknown) {
-      this.error.set((e as { error?: { errorMessage?: string } })?.error?.errorMessage ?? 'A művelet nem sikerült.');
-      return false;
-    } finally {
-      this.busy.set(false);
-    }
+    action.pipe(finalize(() => this.actionBusy.set(false))).subscribe({
+      next: onSuccess,
+      error: (err: unknown) => this.error.set(extractErrorMessage(err, ACTION_ERROR)),
+    });
   }
+}
+
+/** Kötelező egész 1 és `max` között. */
+function bounded(max: number) {
+  return [Validators.required, Validators.min(1), Validators.max(max)];
 }

@@ -1,12 +1,11 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, take } from 'rxjs/operators';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 import { AdminTeacherService } from './admin-teacher.service';
 import { AdminTaskSetDto, TeacherProfileAdminDto } from '../../models/teacher-moderation.model';
 
+// Root store: az állapota oldalváltáskor szándékosan megmarad (owner-döntés, 2026-10-23).
 @Injectable({ providedIn: 'root' })
 export class AdminTeacherStore {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly service = inject(AdminTeacherService);
 
   private readonly _teachers = signal<TeacherProfileAdminDto[]>([]);
@@ -33,13 +32,13 @@ export class AdminTeacherStore {
   // tartalmát vonná vissza B helyett.
   private _taskSetsGeneration = 0;
 
-  readonly teachers = computed(() => this._teachers());
+  readonly teachers = this._teachers.asReadonly();
   readonly loading = computed(() => this._inFlight().size > 0);
-  readonly error = computed(() => this._error());
+  readonly error = this._error.asReadonly();
 
-  readonly selectedTeacherId = computed(() => this._selectedTeacherId());
-  readonly taskSets = computed(() => this._taskSets());
-  readonly taskSetsLoading = computed(() => this._taskSetsLoading());
+  readonly selectedTeacherId = this._selectedTeacherId.asReadonly();
+  readonly taskSets = this._taskSets.asReadonly();
+  readonly taskSetsLoading = this._taskSetsLoading.asReadonly();
 
   load(): void {
     if (this._isInFlight('load')) return;
@@ -47,11 +46,7 @@ export class AdminTeacherStore {
 
     this.service
       .getTeachers()
-      .pipe(
-        take(1),
-        finalize(() => this._end('load')),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end('load')))
       .subscribe({
         next: (teachers) => this._teachers.set(teachers),
         error: (err) => this._error.set(err.error?.errorMessage ?? 'A tanárok betöltése sikertelen.'),
@@ -65,11 +60,7 @@ export class AdminTeacherStore {
 
     this.service
       .setActive(teacherProfileId, isActive)
-      .pipe(
-        take(1),
-        finalize(() => this._end(key)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end(key)))
       .subscribe({
         next: () => {
           this._teachers.update((list) =>
@@ -98,11 +89,7 @@ export class AdminTeacherStore {
 
     this.service
       .setQuota(teacherProfileId, maxTaskSets, maxStorageBytes)
-      .pipe(
-        take(1),
-        finalize(() => this._end(key)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end(key)))
       .subscribe({
         next: () => {
           this._teachers.update((list) =>
@@ -137,11 +124,9 @@ export class AdminTeacherStore {
     this.service
       .getTaskSets(teacherProfileId)
       .pipe(
-        take(1),
         finalize(() => {
           if (generation === this._taskSetsGeneration) this._taskSetsLoading.set(false);
         }),
-        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: (taskSets) => {
@@ -162,11 +147,7 @@ export class AdminTeacherStore {
 
     this.service
       .takedownTaskSet(taskSetId)
-      .pipe(
-        take(1),
-        finalize(() => this._end(key)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end(key)))
       .subscribe({
         next: () => {
           this._taskSets.update((list) =>
@@ -194,11 +175,7 @@ export class AdminTeacherStore {
 
     this.service
       .reinstateTaskSet(taskSetId)
-      .pipe(
-        take(1),
-        finalize(() => this._end(key)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._end(key)))
       .subscribe({
         next: () => {
           this._taskSets.update((list) =>

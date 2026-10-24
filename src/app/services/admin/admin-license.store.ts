@@ -1,6 +1,5 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, take } from 'rxjs/operators';
+import { Injectable, signal, inject } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 import { AdminLicenseService } from './admin-license.service';
 import {
   CreateInstitutionalLicenseRequest,
@@ -25,9 +24,9 @@ export type LicenseErrorSource =
   | 'loadSeats'
   | 'loadUsage';
 
+// Root store: az állapota oldalváltáskor szándékosan megmarad (owner-döntés, 2026-10-23).
 @Injectable({ providedIn: 'root' })
 export class AdminLicenseStore {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly service = inject(AdminLicenseService);
 
   private readonly _licenses = signal<InstitutionalLicenseDto[]>([]);
@@ -41,13 +40,13 @@ export class AdminLicenseStore {
   private readonly _errorSource = signal<LicenseErrorSource | null>(null);
   private readonly _errorLicenseId = signal<number | null>(null);
 
-  readonly licenses = computed(() => this._licenses());
-  readonly seats = computed(() => this._seats());
-  readonly usage = computed(() => this._usage());
-  readonly loading = computed(() => this._loading());
-  readonly error = computed(() => this._error());
-  readonly errorSource = computed(() => this._errorSource());
-  readonly errorLicenseId = computed(() => this._errorLicenseId());
+  readonly licenses = this._licenses.asReadonly();
+  readonly seats = this._seats.asReadonly();
+  readonly usage = this._usage.asReadonly();
+  readonly loading = this._loading.asReadonly();
+  readonly error = this._error.asReadonly();
+  readonly errorSource = this._errorSource.asReadonly();
+  readonly errorLicenseId = this._errorLicenseId.asReadonly();
 
   /** Egy adott intézményhez tartozó licencek (az Intézmények oldal sorai alá). */
   licensesForSchool(schoolId: number): InstitutionalLicenseDto[] {
@@ -75,11 +74,7 @@ export class AdminLicenseStore {
     // (ld. az admin-school.store.ts UI-TT-65 megjegyzését).
     this.service
       .getLicenses()
-      .pipe(
-        take(1),
-        finalize(() => this._loading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._loading.set(false)))
       .subscribe({
         next: (licenses) => this._licenses.set(licenses),
         error: (err) => this.setError(err.error?.errorMessage ?? 'A licencek betöltése sikertelen.', 'load'),
@@ -102,7 +97,6 @@ export class AdminLicenseStore {
     // marad. Hiba esetén viszont load() sosem fut le - ott itt kapcsoljuk ki.
     this.service
       .create(request)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (license) => {
           this.load();
@@ -134,7 +128,6 @@ export class AdminLicenseStore {
 
     this.service
       .update(id, request)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (license) => {
           // BE/UI: a licenc-lista frissítése önmagában nem elég. Ha az admin épp NYITVA
@@ -168,7 +161,6 @@ export class AdminLicenseStore {
 
     this.service
       .revoke(id)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           // BE/UI: a licenc-lista frissítése önmagában nem elég. Ha az admin épp NYITVA
@@ -205,7 +197,6 @@ export class AdminLicenseStore {
 
     this.service
       .getSeats(licenseId)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (seats) => this._seats.update((current) => ({ ...current, [licenseId]: seats })),
         error: (err) =>
@@ -222,7 +213,6 @@ export class AdminLicenseStore {
 
     this.service
       .getUsage(licenseId)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (usage) => this._usage.update((current) => ({ ...current, [licenseId]: usage })),
         error: (err) =>
@@ -238,11 +228,7 @@ export class AdminLicenseStore {
 
     this.service
       .releaseSeat(licenseId, userId)
-      .pipe(
-        take(1),
-        finalize(() => this._loading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._loading.set(false)))
       .subscribe({
         next: () => {
           // A hely-lista ÉS a licenc-sor számai is változtak.

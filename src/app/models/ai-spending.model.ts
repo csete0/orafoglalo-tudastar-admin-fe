@@ -31,8 +31,6 @@ export const AI_SOURCES = [
   { key: 'teacher-oral-draft', label: 'Tanári szóbeli tételvázlat', color: 'var(--series-teacher-oral-draft)' },
 ] as const;
 
-export type AiSourceKey = (typeof AI_SOURCES)[number]['key'];
-
 export function sourceLabel(key: string): string {
   return AI_SOURCES.find((s) => s.key === key)?.label ?? key;
 }

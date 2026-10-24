@@ -13,7 +13,6 @@ const STATE_ICON: Record<ToastState, IconName> = {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-toast',
-  standalone: true,
   imports: [IconComponent],
   template: `
     @if (toastService.toast(); as t) {

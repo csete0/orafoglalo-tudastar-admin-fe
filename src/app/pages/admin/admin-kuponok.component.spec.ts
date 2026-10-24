@@ -1,6 +1,8 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
 import { AdminKuponokComponent } from './admin-kuponok.component';
+import { CouponCreateFormComponent } from './kuponok/coupon-create-form.component';
 import { AdminCouponService } from '../../services/admin/admin-coupon.service';
 import { ToastService } from '../../shared/toast/toast.service';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
@@ -35,7 +37,12 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
   let toastMock: { success: ReturnType<typeof vi.fn>; danger: ReturnType<typeof vi.fn> };
   let confirmMock: { ask: ReturnType<typeof vi.fn> };
 
-  function configure(coupons: CouponAdminDto[] = []) {
+  /** Az „Új kupon” űrlap (WP-C8 óta külön komponens). */
+  const createForm = (fixture: ComponentFixture<AdminKuponokComponent>): CouponCreateFormComponent =>
+    fixture.debugElement.query(By.directive(CouponCreateFormComponent)).componentInstance;
+
+  /** A lista rxResource-ból jön: az első érték egy makrotask-kör után érkezik. */
+  async function configure(coupons: CouponAdminDto[] = []) {
     svcMock = {
       list: vi.fn().mockReturnValue(of(coupons)),
       create: vi.fn().mockImplementation((req) => of(makeCoupon({ ...req, id: 99, code: req.code.toUpperCase() }))),
@@ -59,11 +66,13 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     });
     const fixture = TestBed.createComponent(AdminKuponokComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     return fixture;
   }
 
-  it('betöltéskor csak az aktív kuponokat listázza, az "Összes" szűrő az inaktívakat is', () => {
-    const fixture = configure([
+  it('betöltéskor csak az aktív kuponokat listázza, az "Összes" szűrő az inaktívakat is', async () => {
+    const fixture = await configure([
       makeCoupon({ id: 1, code: 'AKTIV' }),
       makeCoupon({ id: 2, code: 'REGI', isActive: false }),
     ]);
@@ -78,15 +87,15 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(el.textContent).toContain('inaktív');
   });
 
-  it('a csomag-legördülőből kihagyja az ingyenes csomagot', () => {
-    const fixture = configure();
+  it('a csomag-legördülőből kihagyja az ingyenes csomagot', async () => {
+    const fixture = await configure();
 
     expect(fixture.componentInstance.subscriptionTypes().map((t) => t.id)).toEqual([2, 3]);
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Ingyenes (');
   });
 
-  it('a kedvezmény és a beváltás-számláló olvasható címkét kap', () => {
-    const fixture = configure([
+  it('a kedvezmény és a beváltás-számláló olvasható címkét kap', async () => {
+    const fixture = await configure([
       makeCoupon({ id: 1, code: 'SZAZ', percentOff: 100, maxRedemptions: 5, redemptionCount: 2 }),
       makeCoupon({ id: 2, code: 'FIX', percentOff: null, amountOffHuf: 1500, subscriptionTypeName: 'Standard' }),
     ]);
@@ -98,8 +107,8 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(text).toContain('Standard');
   });
 
-  it('elfogyott és lejárt kupon jelvényt kap', () => {
-    const fixture = configure([
+  it('elfogyott és lejárt kupon jelvényt kap', async () => {
+    const fixture = await configure([
       makeCoupon({ id: 1, code: 'ELFOGYOTT', maxRedemptions: 1, redemptionCount: 1 }),
       makeCoupon({ id: 2, code: 'LEJART', validTo: '2020-01-01T00:00:00Z' }),
     ]);
@@ -109,17 +118,15 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(text).toContain('lejárt');
   });
 
-  it('létrehozás: százalékos kuponnál csak a percentOff megy, a dátumok ISO-ként, a válasz a lista elejére kerül', () => {
-    const fixture = configure([makeCoupon({ id: 1, code: 'REGI' })]);
+  it('létrehozás: százalékos kuponnál csak a percentOff megy, a dátumok ISO-ként, a válasz a lista elejére kerül', async () => {
+    const fixture = await configure([makeCoupon({ id: 1, code: 'REGI' })]);
     const component = fixture.componentInstance;
-    component.form.code = ' uj2026 ';
-    component.form.percentOff = 25;
-    component.form.validTo = '2026-12-31';
-    component.form.maxRedemptions = 10;
-    component.form.subscriptionTypeId = 2;
-    component.form.note = ' Őszi kampány ';
+    const form = createForm(fixture);
+    form.form.patchValue({
+      code: ' uj2026 ', percentOff: 25, validTo: '2026-12-31', maxRedemptions: 10, subscriptionTypeId: 2, note: ' Őszi kampány ',
+    });
 
-    component.create();
+    form.create();
     fixture.detectChanges();
 
     const req = svcMock.create.mock.calls[0][0];
@@ -133,16 +140,15 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(req.note).toBe('Őszi kampány');
 
     expect(component.coupons()[0].code).toBe('UJ2026');
-    expect(component.form.code).toBe('');
+    expect(form.form.controls.code.value).toBe('');
     expect(toastMock.success).toHaveBeenCalled();
   });
 
-  it('fix összegű kuponnál a percentOff null, az amountOffHuf megy', () => {
-    const fixture = configure();
-    const component = fixture.componentInstance;
+  it('fix összegű kuponnál a percentOff null, az amountOffHuf megy', async () => {
+    const fixture = await configure();
+    const component = createForm(fixture);
     component.setKind('amount');
-    component.form.code = 'FIX';
-    component.form.amountOffHuf = 1000;
+    component.form.patchValue({ code: 'FIX', amountOffHuf: 1000 });
 
     component.create();
 
@@ -151,26 +157,24 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(req.amountOffHuf).toBe(1000);
   });
 
-  it('kód vagy kedvezmény nélkül a küldés tiltott, és nem hív szervert', () => {
-    const fixture = configure();
-    const component = fixture.componentInstance;
+  it('kód vagy kedvezmény nélkül a küldés tiltott, és nem hív szervert', async () => {
+    const fixture = await configure();
+    const component = createForm(fixture);
 
-    component.form.code = 'X';
+    component.form.patchValue({ code: 'X' });
     expect(component.canSubmit()).toBe(false);
     component.create();
     expect(svcMock.create).not.toHaveBeenCalled();
 
-    component.form.code = '';
-    component.form.percentOff = 10;
+    component.form.patchValue({ code: '', percentOff: 10 });
     expect(component.canSubmit()).toBe(false);
   });
 
-  it('a szerver validációs hibáját (OrafoglaloException errorMessage) az űrlap alatt mutatja', () => {
-    const fixture = configure();
-    const component = fixture.componentInstance;
+  it('a szerver validációs hibáját (OrafoglaloException errorMessage) az űrlap alatt mutatja', async () => {
+    const fixture = await configure();
+    const component = createForm(fixture);
     svcMock.create.mockReturnValue(throwError(() => ({ error: { errorMessage: 'Ilyen kód már létezik.' } })));
-    component.form.code = 'DUPLA';
-    component.form.percentOff = 10;
+    component.form.patchValue({ code: 'DUPLA', percentOff: 10 });
 
     component.create();
     fixture.detectChanges();
@@ -181,7 +185,7 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
   });
 
   it('inaktiválás: megerősítés után deactivate() hívódik, és a sor inaktív lesz', async () => {
-    const fixture = configure([makeCoupon({ id: 7, code: 'VEGE' })]);
+    const fixture = await configure([makeCoupon({ id: 7, code: 'VEGE' })]);
     const component = fixture.componentInstance;
 
     await component.deactivate(component.coupons()[0]);
@@ -196,7 +200,7 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
   });
 
   it('inaktiválás elutasított megerősítésnél nem hív szervert', async () => {
-    const fixture = configure([makeCoupon({ id: 7 })]);
+    const fixture = await configure([makeCoupon({ id: 7 })]);
     confirmMock.ask.mockResolvedValue(false);
 
     await fixture.componentInstance.deactivate(fixture.componentInstance.coupons()[0]);
@@ -204,8 +208,7 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(svcMock.deactivate).not.toHaveBeenCalled();
   });
 
-  it('betöltési hiba esetén hibaüzenet jelenik meg', () => {
-    svcMock = {} as any;
+  it('betöltési hiba esetén hibaüzenet jelenik meg', async () => {
     TestBed.configureTestingModule({
       imports: [AdminKuponokComponent],
       providers: [
@@ -218,6 +221,8 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
       ],
     });
     const fixture = TestBed.createComponent(AdminKuponokComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('betöltése sikertelen');

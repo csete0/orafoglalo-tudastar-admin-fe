@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { AdminSzempontlistakComponent, toBlocks } from './admin-szempontlistak.component';
 import { AdminRubricsService } from '../../services/admin/admin-rubrics.service';
@@ -20,7 +20,14 @@ const detail = (over: Partial<RubricDetail> = {}): RubricDetail => ({
 });
 
 describe('AdminSzempontlistakComponent (Szempontlisták)', () => {
-  function setup(review = vi.fn(() => of(detail({ status: 'approved' })))) {
+  /** A lista és a részlet rxResource-ból jön: a betöltés változás-észleléskor indul, az érték egy makrotask-kör után érkezik. */
+  const settle = async (fixture: ComponentFixture<AdminSzempontlistakComponent>) => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
+
+  async function setup(review = vi.fn(() => of(detail({ status: 'approved' })))) {
     const api = {
       listOfficial: vi.fn(() => of([
         { taskId: 90, setTitle: '2024. május-június', levelId: 3, taskType: 'word', taskTitle: 'Danuvia', taskMaxPoints: 3, rubricId: 9, version: 1, status: 'draft', itemCount: 5, hasApproved: false },
@@ -31,7 +38,7 @@ describe('AdminSzempontlistakComponent (Szempontlisták)', () => {
     };
     TestBed.configureTestingModule({ imports: [AdminSzempontlistakComponent], providers: [{ provide: AdminRubricsService, useValue: api }] });
     const fixture = TestBed.createComponent(AdminSzempontlistakComponent);
-    fixture.detectChanges();
+    await settle(fixture);
     return { fixture, el: fixture.nativeElement as HTMLElement, api };
   }
 
@@ -42,11 +49,11 @@ describe('AdminSzempontlistakComponent (Szempontlisták)', () => {
     expect(blocks[1].thresholds!.map((t) => t.minCorrect)).toEqual([2, 2]);
   });
 
-  it('lista haladással, részletek, jóváhagyás → a sor állapota frissül; csak a várakozók szűrő', () => {
-    const { fixture, el, api } = setup();
+  it('lista haladással, részletek, jóváhagyás → a sor állapota frissül; csak a várakozók szűrő', async () => {
+    const { fixture, el, api } = await setup();
     expect(el.querySelector('[data-testid="rubric-progress"]')?.textContent).toContain('1 / 2');
     el.querySelector<HTMLButtonElement>('[data-testid="rubric-row-90"]')!.click();
-    fixture.detectChanges();
+    await settle(fixture);
     expect(api.get).toHaveBeenCalledWith(9);
     expect(el.querySelector('[data-testid="rubric-totals"]')?.textContent).toContain('3');
     expect(el.querySelectorAll('[data-testid="rubric-group"] li').length).toBe(2);
@@ -59,12 +66,12 @@ describe('AdminSzempontlistakComponent (Szempontlisták)', () => {
     expect(el.querySelector('[data-testid="rubric-list"]')?.textContent).toContain('Nincs jóváhagyásra váró');
   });
 
-  it('hibás listánál a jóváhagyás tiltott, elutasítás csak megjegyzéssel; a szerver hibaüzenete megjelenik', () => {
+  it('hibás listánál a jóváhagyás tiltott, elutasítás csak megjegyzéssel; a szerver hibaüzenete megjelenik', async () => {
     const review = vi.fn(() => throwError(() => ({ error: { errorMessage: 'Csak vázlat vagy elutasított szempontlista bírálható el.' } })));
-    const { fixture, el, api } = setup(review);
+    const { fixture, el, api } = await setup(review);
     api.get.mockReturnValueOnce(of(detail({ problems: ['A szempontok pontösszege (2) nem egyezik a nyers összponttal (3).'] })));
     el.querySelector<HTMLButtonElement>('[data-testid="rubric-row-90"]')!.click();
-    fixture.detectChanges();
+    await settle(fixture);
     const button = (label: string) => [...el.querySelectorAll('button')].find((b) => b.textContent!.trim() === label) as HTMLButtonElement;
     expect(button('Jóváhagyom').disabled).toBe(true);
     expect(button('Elutasítom').disabled).toBe(true);

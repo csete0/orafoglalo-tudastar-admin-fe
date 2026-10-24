@@ -1,26 +1,26 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 import { AdminProjektmuhelyService } from '../../services/admin/admin-projektmuhely.service';
-import {
-  EXAM_PART_LABELS,
-  ProjectAdminCosts,
-  ProjectAdminFunnel,
-  ProjectAdminOverview,
-  ProjectAdminTechnikumStats,
-  RUNTIME_LABELS,
-} from '../../models/projektmuhely.model';
-import { sourceColor, sourceLabel } from '../../models/ai-spending.model';
 import { LocalSpinnerComponent } from '../../shared/local-spinner/local-spinner.component';
+import { TabBarComponent, TabItem } from '../../shared/tab-bar/tab-bar.component';
+import { extractErrorMessage } from '../../shared/http-error/extract-error-message.util';
+import { latestValue } from '../../shared/resource/latest-value';
+import { reportErrors } from '../../shared/resource/report-errors';
+import { ProjektmuhelyAttekintesComponent } from './projektmuhely/projektmuhely-attekintes.component';
+import { ProjektmuhelyTolcserComponent } from './projektmuhely/projektmuhely-tolcser.component';
+import { ProjektmuhelyKoltsegComponent } from './projektmuhely/projektmuhely-koltseg.component';
+import { ProjektmuhelyTechnikumComponent } from './projektmuhely/projektmuhely-technikum.component';
 
 type Tab = 'attekintes' | 'tolcser' | 'koltseg' | 'technikum';
 
-const CHART_WIDTH = 860;
-const CHART_HEIGHT = 200;
-const PAD_LEFT = 36;
-const PAD_RIGHT = 8;
-const PAD_TOP = 10;
-const PAD_BOTTOM = 22;
+const LOAD_ERROR = 'A Projektműhely adatait nem sikerült betölteni.';
+
+/** `auto`: az első betöltés választása - a spinner alatt tölt, és a hibája az oldal-betöltés hibája (mint eddig). */
+interface FunnelRequest {
+  slug: string;
+  auto: boolean;
+}
 
 /**
  * Projektműhely (PATRICKS-PROJEKTMUHELY-2-TERV.md, A fázis): haladás projektenként, a tölcsér (hol akadnak el a
@@ -29,8 +29,10 @@ const PAD_BOTTOM = 22;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-projektmuhely',
-  standalone: true,
-  imports: [DecimalPipe, LocalSpinnerComponent],
+  imports: [
+    LocalSpinnerComponent, TabBarComponent, ProjektmuhelyAttekintesComponent, ProjektmuhelyTolcserComponent, ProjektmuhelyKoltsegComponent,
+    ProjektmuhelyTechnikumComponent,
+  ],
   template: `
     <div class="max-w-6xl">
       <p class="text-xs font-bold text-text-muted uppercase tracking-wide mb-1">Platform-admin</p>
@@ -41,12 +43,7 @@ const PAD_BOTTOM = 22;
       <div class="hairline"></div>
 
       <div class="flex items-end justify-between gap-4 flex-wrap border-b border-border-default mb-6">
-        <nav class="flex gap-5 overflow-x-auto" role="tablist">
-          @for (tab of tabs; track tab.id) {
-            <button type="button" role="tab" [attr.aria-selected]="activeTab() === tab.id" class="tab-btn whitespace-nowrap"
-              [class.tab-btn-active]="activeTab() === tab.id" (click)="selectTab(tab.id)">{{ tab.label }}</button>
-          }
-        </nav>
+        <nav app-tab-bar class="flex gap-5 overflow-x-auto" role="tablist" [tabs]="tabs" [active]="activeTab()" (activeChange)="selectTab($event)"></nav>
         @if (activeTab() !== 'tolcser') {
           <div class="inline-flex border border-border-default rounded-full p-0.5 gap-0.5 mb-2" role="group" aria-label="Időszak">
             @for (d of dayOptions; track d) {
@@ -67,218 +64,23 @@ const PAD_BOTTOM = 22;
         @switch (activeTab()) {
           @case ('attekintes') {
             @if (overview(); as ov) {
-              <div class="card p-5 mb-6">
-                <h2 class="font-bold">Projektek</h2>
-                <div class="overflow-x-auto mt-3">
-                  <table class="w-full text-sm">
-                    <thead>
-                      <tr class="text-left text-xs text-text-muted">
-                        <th class="py-2 pr-3">Projekt</th><th class="pr-3 text-right">Elkezdte</th><th class="pr-3 text-right">Befejezte</th>
-                        <th class="pr-3 text-right">Aktív (7 / 30 nap)</th><th class="pr-3">Nyelvek</th><th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (p of ov.projects; track p.slug) {
-                        <tr class="border-t border-border-default">
-                          <td class="py-2 pr-3 font-semibold">{{ p.title }} @if (!p.isPublished) { <span class="text-xs text-text-muted">(nem publikált)</span> }</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.started }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.completed }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.active7 }} / {{ p.active30 }}</td>
-                          <td class="pr-3 text-xs text-text-muted">{{ runtimes(p.byRuntime) }}</td>
-                          <td class="text-right"><button type="button" class="text-xs font-bold text-primary" (click)="openFunnel(p.slug)">Tölcsér →</button></td>
-                        </tr>
-                      } @empty {
-                        <tr><td colspan="6" class="py-3 text-text-muted">Még nincs projekt.</td></tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="card p-5">
-                <h2 class="font-bold">Napi futtatások</h2>
-                <p class="text-xs text-text-muted mt-0.5">Ellenőrzések és hibrid (C#/Java) előnézet-kérések a Judge0-n; az oszlopra mutatva az AI-költés is.</p>
-                <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" class="w-full h-auto block mt-3" role="img"
-                  aria-label="Napi Judge0-futtatások: Ellenőrzés és előnézet">
-                  @for (tick of yTicks(); track tick.y) {
-                    <line [attr.x1]="padLeft" [attr.x2]="chartWidth - padRight" [attr.y1]="tick.y" [attr.y2]="tick.y" stroke="var(--color-border-default)" stroke-width="1" />
-                    <text [attr.x]="padLeft - 6" [attr.y]="tick.y + 3" text-anchor="end" font-size="10" fill="var(--color-text-muted)">{{ tick.label }}</text>
-                  }
-                  @for (bar of bars(); track bar.date) {
-                    <rect [attr.x]="bar.x" [attr.y]="bar.checksY" [attr.width]="bar.width" [attr.height]="bar.checksH" fill="var(--series-grading)" rx="2" />
-                    <rect [attr.x]="bar.x" [attr.y]="bar.previewsY" [attr.width]="bar.width" [attr.height]="bar.previewsH" fill="var(--series-classtest)" rx="2" />
-                    <rect [attr.x]="bar.x" [attr.y]="padTop" [attr.width]="bar.width" [attr.height]="chartHeight - padTop - padBottom" fill="transparent">
-                      <title>{{ bar.label }} · Ellenőrzés: {{ bar.checks }} · előnézet: {{ bar.previews }} · AI: {{ bar.aiRequests }} kérés, {{ fmtUsd(bar.aiCostUsd) }}</title>
-                    </rect>
-                  }
-                </svg>
-                <div class="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-border-default text-xs text-text-muted">
-                  <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm inline-block" style="background: var(--series-grading)"></span>
-                    Ellenőrzés <strong class="text-text-primary">{{ totals().checks }}</strong></span>
-                  <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm inline-block" style="background: var(--series-classtest)"></span>
-                    Előnézet (C#/Java) <strong class="text-text-primary">{{ totals().previews }}</strong></span>
-                  <span>AI: <strong class="text-text-primary">{{ totals().aiRequests }}</strong> kérés, <strong class="text-text-primary">{{ fmtUsd(totals().aiCostUsd) }}</strong></span>
-                </div>
-              </div>
+              <app-projektmuhely-attekintes [overview]="ov" (funnelOpen)="openFunnel($event)" />
             }
           }
-
           @case ('tolcser') {
-            <div class="flex items-center gap-3 mb-4">
-              <label class="text-sm font-semibold" for="pm-funnel-project">Projekt</label>
-              <select id="pm-funnel-project" class="input max-w-xs" [value]="funnelSlug()" (change)="openFunnel($any($event.target).value)">
-                @for (p of overview()?.projects ?? []; track p.slug) { <option [value]="p.slug">{{ p.title }}</option> }
-              </select>
-            </div>
-            @if (funnel(); as f) {
-              <div class="card p-5">
-                <h2 class="font-bold">{{ f.title }} – {{ f.started }} diák kezdte el</h2>
-                <p class="text-xs text-text-muted mt-0.5">A sáv: a lépést teljesítők aránya az elkezdőkhöz képest. A legnagyobb lemorzsolódás kiemelve – ott érdemes a tartalmon javítani.</p>
-                <div class="overflow-x-auto mt-3">
-                  <table class="w-full text-sm">
-                    <thead>
-                      <tr class="text-left text-xs text-text-muted">
-                        <th class="py-2 pr-3">Lépés</th><th class="pr-3 w-1/4">Teljesítette</th><th class="pr-3 text-right">Eljutott</th>
-                        <th class="pr-3 text-right">Ellenőrzés / fő</th><th class="pr-3 text-right">Tipp · hely · kód</th><th class="pr-3 text-right">Medián idő</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (m of f.milestones; track m.orderNo) {
-                        <tr class="border-t border-border-default" [class.bg-bg-element]="m.orderNo === worstDrop()">
-                          <td class="py-2 pr-3"><span class="text-text-muted tabular-nums">{{ m.orderNo }}.</span> {{ m.title }}
-                            @if (m.orderNo === worstDrop()) { <span class="ml-1 text-xs font-bold text-warning">legnagyobb lemorzsolódás</span> }</td>
-                          <td class="pr-3">
-                            <div class="flex items-center gap-2">
-                              <div class="h-2 flex-1 rounded-full bg-bg-elevated overflow-hidden">
-                                <div class="h-full bg-primary" [style.width.%]="percent(m.passed, f.started)"></div>
-                              </div>
-                              <span class="tabular-nums text-xs w-14 text-right">{{ m.passed }} ({{ percent(m.passed, f.started) | number: '1.0-0' }}%)</span>
-                            </div>
-                          </td>
-                          <td class="pr-3 text-right tabular-nums">{{ m.reached }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ m.avgChecks | number: '1.0-1' }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ m.hint1 }} · {{ m.hint2 }} · {{ m.hint3 }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ fmtMinutes(m.medianMinutesToPass) }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            } @else {
-              <p class="text-sm text-text-muted">Válassz projektet.</p>
-            }
+            <app-projektmuhely-tolcser [projects]="overview()?.projects ?? []" [slug]="funnelSlug()" [funnel]="funnel()"
+              (projectChange)="openFunnel($event)" />
           }
-
           @case ('technikum') {
             @if (technikumLoading()) {
               <app-local-spinner />
             } @else if (technikum(); as t) {
-              <p class="text-xs text-text-muted mb-4 max-w-2xl">
-                A Technikumi vizsga projektjei részenként, a bírált eredmények alapján ({{ t.days }} nap; a függő és a rendszerhibás bírálat nem számít).
-                Bukás: 40% alatti eredmény (a vizsga megfelelt-határa). Vizsga: önálló próbavizsga és dolgozat; gyakorlás: gyakorló ellenőrzés.
-              </p>
-              @for (p of t.projects; track p.slug) {
-                <div class="card p-5 mb-4" [attr.data-testid]="'technikum-' + p.slug">
-                  <h2 class="font-bold">{{ p.title }}
-                    <span [class]="p.kind === 'exam' ? 'badge badge-primary ml-1' : 'badge badge-neutral ml-1'">{{ p.kind === 'exam' ? 'próbavizsga' : 'gyakorló' }}</span>
-                    @if (!p.isPublished) { <span class="text-xs text-text-muted">(nem publikált)</span> }
-                  </h2>
-                  <div class="overflow-x-auto mt-3">
-                    <table class="w-full text-sm">
-                      <thead>
-                        <tr class="text-left text-xs text-text-muted">
-                          <th class="py-2 pr-3" rowspan="2">Rész</th>
-                          <th class="pr-3 text-center border-b border-border-default" colspan="3">Vizsga</th>
-                          <th class="pr-3 text-center border-b border-border-default" colspan="3">Gyakorlás</th>
-                        </tr>
-                        <tr class="text-xs text-text-muted">
-                          <th class="py-1 pr-3 text-right">Eredmény (diák)</th><th class="pr-3 text-right">Átlag</th><th class="pr-3 text-right">Bukási arány</th>
-                          <th class="pr-3 text-right">Eredmény (diák)</th><th class="pr-3 text-right">Átlag</th><th class="pr-3 text-right">Bukási arány</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (part of p.parts; track part.partKey) {
-                          <tr class="border-t border-border-default">
-                            <td class="py-2 pr-3 font-semibold">{{ partLabel(part.partKey) }} <span class="text-xs font-normal text-text-muted">({{ part.maxPoints }} pont)</span></td>
-                            @for (s of [part.exam, part.practice]; track $index) {
-                              <td class="pr-3 text-right tabular-nums">{{ s.results }} ({{ s.students }})</td>
-                              <td class="pr-3 text-right tabular-nums">{{ fmtPercent(s.avgPercent) }}</td>
-                              <td class="pr-3 text-right tabular-nums">{{ fmtPercent(s.failRatePercent) }}</td>
-                            }
-                          </tr>
-                        } @empty {
-                          <tr><td colspan="7" class="py-3 text-text-muted">A projektnek nincs vizsgarészhez kötött lépése.</td></tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              } @empty {
-                <p class="text-sm text-text-muted">Még nincs technikumi vizsgaprojekt.</p>
-              }
+              <app-projektmuhely-technikum [stats]="t" />
             }
           }
-
           @case ('koltseg') {
             @if (costs(); as c) {
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                <div class="card p-4"><p class="text-xs text-text-muted font-semibold">AI-költés ({{ c.days }} nap)</p>
-                  <p class="text-2xl font-extrabold mt-1">{{ fmtUsd(c.totalAiUsd) }}</p></div>
-                <div class="card p-4"><p class="text-xs text-text-muted font-semibold">Ellenőrzések</p>
-                  <p class="text-2xl font-extrabold mt-1 tabular-nums">{{ c.checks }}</p></div>
-                <div class="card p-4"><p class="text-xs text-text-muted font-semibold">Előnézet-futtatások (C#/Java)</p>
-                  <p class="text-2xl font-extrabold mt-1 tabular-nums">{{ c.previews }}</p></div>
-                <div class="card p-4"><p class="text-xs text-text-muted font-semibold">Judge0 CPU-idő</p>
-                  <p class="text-2xl font-extrabold mt-1 tabular-nums">{{ fmtSeconds(c.judge0CpuSeconds) }}</p></div>
-              </div>
-
-              <div class="card p-5 mb-6">
-                <h2 class="font-bold">AI forrásonként</h2>
-                <ul class="mt-3 flex flex-col gap-2">
-                  @for (s of c.bySource; track s.source) {
-                    <li class="flex items-center gap-3 text-sm">
-                      <span class="w-2.5 h-2.5 rounded-sm inline-block" [style.background]="color(s.source)"></span>
-                      <span class="flex-1">{{ label(s.source) }}</span>
-                      <span class="tabular-nums text-text-muted">{{ s.requests }} kérés</span>
-                      <strong class="tabular-nums w-20 text-right">{{ fmtUsd(s.costUsd) }}</strong>
-                    </li>
-                  }
-                </ul>
-                @if (c.unattributedAiUsd > 0) {
-                  <p class="text-xs text-text-muted mt-3">Ebből {{ fmtUsd(c.unattributedAiUsd) }} projekthez nem köthető (a hozzárendelés bevezetése előtti kérések).</p>
-                }
-              </div>
-
-              <div class="card p-5">
-                <h2 class="font-bold">Projektenként</h2>
-                <p class="text-xs text-text-muted mt-0.5">Aktív diák: aki az időszakban dolgozott a projekten. A Judge0 saját gépen fut – annak nincs pénzbeli költsége, csak terhelése.</p>
-                <div class="overflow-x-auto mt-3">
-                  <table class="w-full text-sm">
-                    <thead>
-                      <tr class="text-left text-xs text-text-muted">
-                        <th class="py-2 pr-3">Projekt</th><th class="pr-3 text-right">Aktív diák</th><th class="pr-3 text-right">AI-kérés</th>
-                        <th class="pr-3 text-right">AI-költés</th><th class="pr-3 text-right">AI / aktív diák</th>
-                        <th class="pr-3 text-right">Ellenőrzés</th><th class="pr-3 text-right">Előnézet</th><th class="pr-3 text-right">CPU-idő</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (p of c.byProject; track p.slug) {
-                        <tr class="border-t border-border-default">
-                          <td class="py-2 pr-3 font-semibold">{{ p.title }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.activeStudents }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.aiRequests }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ fmtUsd(p.aiCostUsd) }}</td>
-                          <td class="pr-3 text-right tabular-nums font-bold">{{ fmtUsd(p.aiCostPerActiveStudentUsd) }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.checks }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ p.previews }}</td>
-                          <td class="pr-3 text-right tabular-nums">{{ fmtSeconds(p.judge0CpuSeconds) }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <app-projektmuhely-koltseg [costs]="c" />
             }
           }
         }
@@ -286,188 +88,83 @@ const PAD_BOTTOM = 22;
     </div>
   `,
 })
-export class AdminProjektmuhelyComponent implements OnInit {
+export class AdminProjektmuhelyComponent {
   private readonly api = inject(AdminProjektmuhelyService);
 
-  readonly tabs: { id: Tab; label: string }[] = [
+  readonly tabs: readonly TabItem<Tab>[] = [
     { id: 'attekintes', label: 'Áttekintés' },
     { id: 'tolcser', label: 'Tölcsér' },
     { id: 'koltseg', label: 'Költség' },
     { id: 'technikum', label: 'Fejlesztőműhely' },
   ];
   readonly dayOptions = [7, 30, 90];
-  readonly chartWidth = CHART_WIDTH;
-  readonly chartHeight = CHART_HEIGHT;
-  readonly padLeft = PAD_LEFT;
-  readonly padRight = PAD_RIGHT;
-  readonly padTop = PAD_TOP;
-  readonly padBottom = PAD_BOTTOM;
 
   readonly activeTab = signal<Tab>('attekintes');
   readonly days = signal(30);
-  readonly loading = signal(true);
+  /** Egy közös hibasor: minden betöltés induláskor törli, hibánál a sajátját írja ki (mint eddig). */
   readonly error = signal<string | null>(null);
-  readonly overview = signal<ProjectAdminOverview | null>(null);
-  readonly costs = signal<ProjectAdminCosts | null>(null);
-  readonly funnel = signal<ProjectAdminFunnel | null>(null);
-  readonly funnelSlug = signal('');
-  readonly technikum = signal<ProjectAdminTechnikumStats | null>(null);
-  readonly technikumLoading = signal(false);
 
-  readonly totals = computed(() =>
-    (this.overview()?.daily ?? []).reduce(
-      (t, d) => ({ checks: t.checks + d.checks, previews: t.previews + d.previews, aiRequests: t.aiRequests + d.aiRequests, aiCostUsd: t.aiCostUsd + d.aiCostUsd }),
-      { checks: 0, previews: 0, aiRequests: 0, aiCostUsd: 0 },
-    ),
+  private readonly dataResource = rxResource({
+    params: () => this.days(),
+    stream: ({ params: days }) =>
+      reportErrors(forkJoin({ overview: this.api.getOverview(days), costs: this.api.getCosts(days) }), this.error, () => LOAD_ERROR),
+  });
+  /** Betöltés közben és hiba után a korábbi adat marad. */
+  private readonly data = latestValue(this.dataResource);
+  readonly overview = computed(() => this.data()?.overview ?? null);
+  readonly costs = computed(() => this.data()?.costs ?? null);
+
+  /** A tölcsér kérése: a felhasználó választása; amíg nincs, az első sikeres betöltés első projektje (automatikusan). */
+  private readonly funnelRequest = linkedSignal<string | undefined, FunnelRequest | undefined>({
+    source: () => this.overview()?.projects[0]?.slug,
+    computation: (first, previous) => previous?.value ?? (first ? { slug: first, auto: true } : undefined),
+  });
+  readonly funnelSlug = computed(() => this.funnelRequest()?.slug ?? '');
+  private readonly funnelResource = rxResource({
+    params: () => this.funnelRequest(),
+    stream: ({ params: { slug, auto } }) =>
+      reportErrors(this.api.getFunnel(slug), this.error, () => (auto ? LOAD_ERROR : 'A tölcsért nem sikerült betölteni.')),
+  });
+  /** Projektváltás közben és hiba után a korábbi tölcsér marad. */
+  private readonly latestFunnel = latestValue(this.funnelResource);
+  readonly funnel = computed(() => this.latestFunnel() ?? null);
+
+  /** A technikumi statisztika csak a fülre lépve töltődik (a többi fül nem függ tőle); a kulcs a kért időszak. */
+  private readonly technikumDays = signal<number | undefined>(undefined);
+  private readonly technikumResource = rxResource({
+    params: () => this.technikumDays(),
+    stream: ({ params: days }) =>
+      reportErrors(this.api.getTechnikum(days), this.error, (err) => extractErrorMessage(err, 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.')),
+  });
+  private readonly latestTechnikum = latestValue(this.technikumResource);
+  readonly technikum = computed(() => this.latestTechnikum() ?? null);
+  readonly technikumLoading = this.technikumResource.isLoading;
+
+  /** A spinner az adatok és az első, automatikus tölcsér betöltéséig látszik. */
+  readonly loading = computed(
+    () => this.dataResource.isLoading() || (this.funnelResource.isLoading() && this.funnelRequest()?.auto === true),
   );
 
-  private readonly maxRuns = computed(() => Math.max(4, ...(this.overview()?.daily ?? []).map((d) => d.checks + d.previews)));
-
-  readonly yTicks = computed(() => {
-    const plotH = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
-    const max = this.maxRuns();
-    return [0, 1, 2, 3, 4].map((i) => ({ y: PAD_TOP + plotH - (i / 4) * plotH, label: String(Math.round((max / 4) * i)) }));
-  });
-
-  readonly bars = computed(() => {
-    const daily = this.overview()?.daily ?? [];
-    const plotW = CHART_WIDTH - PAD_LEFT - PAD_RIGHT;
-    const plotH = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
-    const step = plotW / Math.max(1, daily.length);
-    const width = Math.max(2, Math.min(18, step * 0.7));
-    const max = this.maxRuns();
-    return daily.map((d, i) => {
-      const checksH = (d.checks / max) * plotH;
-      const previewsH = (d.previews / max) * plotH;
-      const base = PAD_TOP + plotH;
-      return {
-        ...d,
-        x: PAD_LEFT + i * step + (step - width) / 2,
-        width,
-        checksY: base - checksH,
-        checksH,
-        previewsY: base - checksH - previewsH,
-        previewsH,
-        label: new Date(d.date).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }),
-      };
-    });
-  });
-
-  /** A tölcsérben a legnagyobb esés (az előző teljesítőkhöz képest) lépése. */
-  readonly worstDrop = computed(() => {
-    const f = this.funnel();
-    if (!f || f.started === 0) return null;
-    let worst: { orderNo: number; drop: number } | null = null;
-    let previous = f.started;
-    for (const m of f.milestones) {
-      const drop = previous - m.passed;
-      if (drop > 0 && (!worst || drop > worst.drop)) worst = { orderNo: m.orderNo, drop };
-      previous = m.passed;
-    }
-    return worst?.orderNo ?? null;
-  });
-
-  async ngOnInit(): Promise<void> {
-    await this.load();
+  /** Az aktív időszak újrakattintása is újratölt (mint eddig). */
+  setDays(days: number): void {
+    if (days === this.days()) this.dataResource.reload();
+    else this.days.set(days);
+    if (this.activeTab() === 'technikum') this.loadTechnikum();
   }
 
-  async setDays(days: number): Promise<void> {
-    this.days.set(days);
-    await this.load();
-    if (this.activeTab() === 'technikum') await this.loadTechnikum();
-  }
-
-  /** A technikumi statisztika csak a fülre lépve töltődik (a többi fül nem függ tőle). */
-  async selectTab(tab: Tab): Promise<void> {
+  selectTab(tab: Tab): void {
     this.activeTab.set(tab);
-    if (tab === 'technikum' && this.technikum()?.days !== this.days()) await this.loadTechnikum();
+    if (tab === 'technikum' && this.technikum()?.days !== this.days()) this.loadTechnikum();
   }
 
-  /** Sorszám-őr: gyors nap-váltásnál csak a legutolsó kérés válasza (és hibája) érvényes, a korábbi, később érkező nem írja felül. */
-  private technikumSeq = 0;
-  private loadSeq = 0;
-
-  private async loadTechnikum(): Promise<void> {
-    const seq = ++this.technikumSeq;
-    this.error.set(null);
-    this.technikumLoading.set(true);
-    try {
-      const stats = await firstValueFrom(this.api.getTechnikum(this.days()));
-      if (seq === this.technikumSeq) this.technikum.set(stats);
-    } catch (err: any) {
-      if (seq !== this.technikumSeq) return;
-      const message = err?.error?.errorMessage;
-      this.error.set(typeof message === 'string' && message.trim() ? message : 'A Fejlesztőműhely-statisztikát nem sikerült betölteni.');
-    } finally {
-      if (seq === this.technikumSeq) this.technikumLoading.set(false);
-    }
-  }
-
-  partLabel(key: string): string {
-    return EXAM_PART_LABELS[key] ?? key;
-  }
-
-  fmtPercent(v: number | null): string {
-    return v === null ? '–' : `${v.toFixed(1)}%`;
-  }
-
-  async openFunnel(slug: string): Promise<void> {
+  /** Mindig újratölt, ugyanarra a projektre is (új kérés-objektum). */
+  openFunnel(slug: string): void {
     this.activeTab.set('tolcser');
-    this.funnelSlug.set(slug);
-    this.error.set(null);
-    try {
-      this.funnel.set(await firstValueFrom(this.api.getFunnel(slug)));
-    } catch {
-      this.error.set('A tölcsért nem sikerült betölteni.');
-    }
+    this.funnelRequest.set({ slug, auto: false });
   }
 
-  private async load(): Promise<void> {
-    const seq = ++this.loadSeq;
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      const [overview, costs] = await Promise.all([
-        firstValueFrom(this.api.getOverview(this.days())),
-        firstValueFrom(this.api.getCosts(this.days())),
-      ]);
-      if (seq !== this.loadSeq) return;
-      this.overview.set(overview);
-      this.costs.set(costs);
-      const first = overview.projects[0]?.slug;
-      if (!this.funnelSlug() && first) {
-        this.funnelSlug.set(first);
-        this.funnel.set(await firstValueFrom(this.api.getFunnel(first)));
-      }
-    } catch {
-      if (seq === this.loadSeq) this.error.set('A Projektműhely adatait nem sikerült betölteni.');
-    } finally {
-      if (seq === this.loadSeq) this.loading.set(false);
-    }
-  }
-
-  runtimes(byRuntime: Record<string, number>): string {
-    return Object.entries(byRuntime).map(([k, v]) => `${RUNTIME_LABELS[k] ?? k} ${v}`).join(' · ') || '–';
-  }
-
-  percent(part: number, whole: number): number {
-    return whole === 0 ? 0 : (part / whole) * 100;
-  }
-
-  label = sourceLabel;
-  color = sourceColor;
-
-  /** Egy Projektműhely-kérés ~0,0001 USD - kis összegnél 4 tizedes, különben „$0.000” lenne. */
-  fmtUsd(v: number): string {
-    return '$' + v.toFixed(v === 0 || v >= 1 ? 2 : v < 0.01 ? 4 : 3);
-  }
-
-  fmtSeconds(s: number): string {
-    return s < 120 ? `${s.toFixed(0)} mp` : `${(s / 60).toFixed(1)} perc`;
-  }
-
-  fmtMinutes(m: number | null): string {
-    if (m === null) return '–';
-    return m < 90 ? `${Math.round(m)} perc` : m < 60 * 48 ? `${(m / 60).toFixed(1)} óra` : `${(m / 1440).toFixed(1)} nap`;
+  private loadTechnikum(): void {
+    if (this.technikumDays() === this.days()) this.technikumResource.reload();
+    else this.technikumDays.set(this.days());
   }
 }

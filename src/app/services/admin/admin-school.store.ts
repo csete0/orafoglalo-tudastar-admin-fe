@@ -1,12 +1,11 @@
-import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, take } from 'rxjs/operators';
+import { Injectable, signal, inject } from '@angular/core';
+import { finalize } from 'rxjs/operators';
 import { AdminSchoolService } from './admin-school.service';
 import { SchoolAdminDto, SchoolMergeResultDto } from '../../models/teacher-moderation.model';
 
+// Root store: az állapota oldalváltáskor szándékosan megmarad (owner-döntés, 2026-10-23).
 @Injectable({ providedIn: 'root' })
 export class AdminSchoolStore {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly service = inject(AdminSchoolService);
 
   private readonly _schools = signal<SchoolAdminDto[]>([]);
@@ -14,10 +13,10 @@ export class AdminSchoolStore {
   private readonly _lastMergeResult = signal<SchoolMergeResultDto | null>(null);
   private readonly _error = signal<string | null>(null);
 
-  readonly schools = computed(() => this._schools());
-  readonly loading = computed(() => this._loading());
-  readonly lastMergeResult = computed(() => this._lastMergeResult());
-  readonly error = computed(() => this._error());
+  readonly schools = this._schools.asReadonly();
+  readonly loading = this._loading.asReadonly();
+  readonly lastMergeResult = this._lastMergeResult.asReadonly();
+  readonly error = this._error.asReadonly();
 
   load(): void {
     this._loading.set(true);
@@ -29,11 +28,7 @@ export class AdminSchoolStore {
     // konzol-tünet).
     this.service
       .getSchools()
-      .pipe(
-        take(1),
-        finalize(() => this._loading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(finalize(() => this._loading.set(false)))
       .subscribe({
         next: (schools) => this._schools.set(schools),
         error: (err) => this._error.set(err.error?.errorMessage ?? 'Az intézmények betöltése sikertelen.'),
@@ -60,7 +55,6 @@ export class AdminSchoolStore {
     // load() sosem fut le, ezért azt a loading-jelet itt kapcsoljuk ki.
     this.service
       .merge(sourceSchoolId, targetSchoolId)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           this._lastMergeResult.set(result);
@@ -83,7 +77,6 @@ export class AdminSchoolStore {
 
     this.service
       .setPublicApproval(schoolId, approved)
-      .pipe(take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.load(),
         error: (err) => {
@@ -91,10 +84,6 @@ export class AdminSchoolStore {
           this._loading.set(false);
         },
       });
-  }
-
-  clearLastMergeResult(): void {
-    this._lastMergeResult.set(null);
   }
 
   clearError(): void {
