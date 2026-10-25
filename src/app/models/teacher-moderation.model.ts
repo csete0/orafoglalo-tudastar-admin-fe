@@ -39,6 +39,8 @@ export interface AdminTaskSetDto {
 
 export interface SchoolAdminDto {
   id: number;
+  /** Demó-iskola (PATRICKS-DEMO-KORNYEZET-TERV.md C14) - látható, „Demó” címkével; a próbaérettségiben soha nem nyilvános. */
+  isDemo: boolean;
   name: string;
   city?: string;
   createdAt: string;

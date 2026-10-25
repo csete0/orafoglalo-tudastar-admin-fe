@@ -10,7 +10,7 @@ const URL_ = `${environment.apiUrl}/users`;
 
 const user = (id: number, overrides: Partial<UserSearchResult> = {}): UserSearchResult => ({
   id, email: `u${id}@example.com`, displayName: `Felhasználó ${id}`, roles: ['student'], createdAt: '2026-09-01T08:00:00',
-  hasActiveSubscription: false, isLockedOut: false, ...overrides,
+  hasActiveSubscription: false, isLockedOut: false, isDemo: false, ...overrides,
 });
 const page = (items: UserSearchResult[], totalCount = items.length): UserSearchPage => ({ items, totalCount, page: 1, pageSize: 50 });
 
@@ -125,6 +125,19 @@ describe('UsersComponent', () => {
     setValue('select[name="role"]', '');
     submit();
     expect(params(expectSearch())).toEqual({ page: '1', pageSize: '50', query: 'kovacs', subscriptionStatus: 'PaymentFailed' });
+  });
+
+  it('a demó-fiókok alapból rejtve; a „demók is” szűrővel kérhetők, és „Demó” címkét kapnak', async () => {
+    expectSearch().flush(page([]));
+    await settle();
+    const box = el.querySelector<HTMLInputElement>('input[name="includeDemo"]')!;
+    box.click();
+    submit();
+    const req = expectSearch();
+    expect(params(req)).toEqual({ page: '1', pageSize: '50', includeDemo: 'true' });
+    req.flush(page([user(9, { isDemo: true })]));
+    await settle();
+    expect(el.querySelector('[data-testid="demo-badge"]')?.textContent).toContain('Demó');
   });
 
   it('lapozás: összes / 50 oldal, határokon tiltott gomb, a Keresés az 1. oldalra ugrik', async () => {

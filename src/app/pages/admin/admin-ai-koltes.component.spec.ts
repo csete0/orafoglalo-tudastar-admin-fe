@@ -24,6 +24,8 @@ function makeOverview(overrides: Partial<AiSpendingOverviewDto> = {}): AiSpendin
     monthTotalUsd: 15.7,
     myOwnMonthUsd: 1.1,
     automationMonthUsd: 3.7,
+    demoTodayUsd: 0.05,
+    demoMonthUsd: 0.4,
     ...overrides,
   };
 }
@@ -115,6 +117,14 @@ describe('AdminAiKoltesComponent - AI-KOLTES-PULT', () => {
     expect(svcMock['getTopSpenders']).toHaveBeenCalledWith(30, 10);
     expect(state.overview()?.monthTotalUsd).toBe(15.7);
     expect(state.topSpenders().length).toBe(1);
+  });
+
+  it('a demók költése külön csempén látszik (a valódi összegekben nincs benne)', async () => {
+    configure();
+    const fixture = await createFixture();
+    const tile = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="demo-spend"]');
+    expect(tile?.textContent).toContain('Demók');
+    expect(tile?.textContent).toContain('0.4');
   });
 
   it('a tanáronkénti dolgozat-felhasználást is megjeleníti a havi kerettel', async () => {

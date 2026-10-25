@@ -14,7 +14,7 @@ const PAGE_SIZE = 50;
  */
 @Injectable({ providedIn: 'root' })
 export class UserSearchState {
-  readonly filter = signal({ query: '', role: '', subscriptionStatus: '' });
+  readonly filter = signal({ query: '', role: '', subscriptionStatus: '', includeDemo: false });
   readonly page = signal(1);
 }
 

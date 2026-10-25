@@ -10,6 +10,7 @@ import { InstitutionalLicenseDto } from '../../../models/institutional-license.m
 export function makeSchool(overrides: Partial<SchoolAdminDto> = {}): SchoolAdminDto {
   return {
     id: 1,
+    isDemo: false,
     name: 'Forrás Gimnázium',
     createdAt: new Date().toISOString(),
     teacherCount: 2,

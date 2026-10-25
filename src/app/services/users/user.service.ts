@@ -11,6 +11,8 @@ export interface UserSearchResult {
   createdAt: string | null;
   hasActiveSubscription: boolean;
   isLockedOut: boolean;
+  /** Demó-fiók (PATRICKS-DEMO-KORNYEZET-TERV.md C15) - alapból rejtve, a „demók is” szűrővel „Demó” címkével látszik. */
+  isDemo: boolean;
 }
 
 export interface UserSearchPage {
@@ -24,6 +26,7 @@ export interface UserSearchFilter {
   query?: string;
   role?: string;
   subscriptionStatus?: string;
+  includeDemo?: boolean;
   page: number;
   pageSize: number;
 }
@@ -102,6 +105,7 @@ export class UserService {
     if (filter.query) params = params.set('query', filter.query);
     if (filter.role) params = params.set('role', filter.role);
     if (filter.subscriptionStatus) params = params.set('subscriptionStatus', filter.subscriptionStatus);
+    if (filter.includeDemo) params = params.set('includeDemo', true);
 
     return this.http.get<UserSearchPage>(`${environment.apiUrl}/users`, { params });
   }

@@ -81,7 +81,12 @@ import { schoolLabel } from './intezmenyek/school-label';
               <app-icon name="building" class="w-6 h-6 block" />
             </div>
             <div class="min-w-0">
-              <p class="font-medium truncate">{{ school.name }}</p>
+              <p class="font-medium truncate">
+                {{ school.name }}
+                @if (school.isDemo) {
+                  <span class="badge badge-warning" data-testid="school-demo-badge">Demó</span>
+                }
+              </p>
               @if (school.city) {
                 <p class="text-sm text-text-muted truncate">{{ school.city }}</p>
               }
@@ -99,7 +104,9 @@ import { schoolLabel } from './intezmenyek/school-label';
               <!-- Próbaérettségi iskolakereső (BE: MockExamSchools): licenccel automatikusan nyilvános,
                    licenc nélkül csak admin-jóváhagyással - a tanárok tetszőleges névvel hozhatnak létre intézményt. -->
               <div class="mt-2 flex items-center gap-2 flex-wrap text-xs" [attr.data-testid]="'public-approval-' + school.id">
-                @if (school.hasLicense) {
+                @if (school.isDemo) {
+                  <span class="badge badge-neutral">Nem nyilvános (demó)</span>
+                } @else if (school.hasLicense) {
                   <span class="badge badge-success">Nyilvános (licenc alapján)</span>
                 } @else {
                   <label class="inline-flex items-center gap-1.5">

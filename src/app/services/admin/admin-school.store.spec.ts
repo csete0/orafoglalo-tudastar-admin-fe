@@ -7,6 +7,7 @@ import { SchoolAdminDto, SchoolMergeResultDto } from '../../models/teacher-moder
 function makeSchool(overrides: Partial<SchoolAdminDto> = {}): SchoolAdminDto {
   return {
     id: 1,
+    isDemo: false,
     name: 'Forrás Suli',
     createdAt: new Date().toISOString(),
     teacherCount: 1,

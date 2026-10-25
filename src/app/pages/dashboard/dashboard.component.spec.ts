@@ -65,6 +65,7 @@ describe('DashboardComponent', () => {
       ['Tanári jelentkezések', '/jelentkezesek', 'migrálva'],
       ['Tanári aktivitás', '/tanarok', 'A7 - kész'],
       ['Intézményi licencek', '/intezmenyek', 'migrálva'],
+      ['Demók', '/demok', 'saját élő demó és lejáró iskolai demók'],
       ['Kérdés-jelentések / érdeklődések', '/ellenorzes', 'migrálva'],
       ['Kuponkódok (általános)', '/kuponok', 'migrálva'],
       ['AI-költés pult', '/ai-koltes', 'migrálva'],

@@ -30,6 +30,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { path: '/jelentkezesek', nav: 'Jelentkezések', tile: { label: 'Tanári jelentkezések', note: 'migrálva' } },
   { path: '/tanarok', nav: 'Tanárok', tile: { label: 'Tanári aktivitás', note: 'A7 - kész' } },
   { path: '/intezmenyek', nav: 'Intézmények', tile: { label: 'Intézményi licencek', note: 'migrálva' } },
+  { path: '/demok', nav: 'Demók', tile: { label: 'Demók', note: 'saját élő demó és lejáró iskolai demók' } },
   { path: '/ellenorzes', nav: 'Ellenőrzés', tile: { label: 'Kérdés-jelentések / érdeklődések', note: 'migrálva' } },
   // B3: a kuponkódoknak nincs menüpontja (csak csempéje) - a menü így is zsúfolt.
   { path: '/kuponok', tile: { label: 'Kuponkódok (általános)', note: 'migrálva' } },

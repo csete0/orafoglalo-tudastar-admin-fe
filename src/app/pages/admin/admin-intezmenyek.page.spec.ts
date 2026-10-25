@@ -13,6 +13,7 @@ import {
 
 const school = (o: Partial<SchoolAdminDto>): SchoolAdminDto => ({
   id: 1,
+  isDemo: false,
   name: 'Suli',
   createdAt: '2026-09-01T10:00:00',
   teacherCount: 0,
