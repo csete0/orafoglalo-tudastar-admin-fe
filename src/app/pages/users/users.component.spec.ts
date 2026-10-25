@@ -89,6 +89,23 @@ describe('UsersComponent', () => {
     expect(rows[0].querySelector('a')!.getAttribute('href')).toBe('/users/7');
   });
 
+  // UI-TT-253: az adatlapról visszatérve (a lista-komponens újra létrejön) a keresés és a szűrő megmarad.
+  it('újra létrehozva (vissza az adatlapról) ugyanazt a keresést kéri, és a mező is kitöltve', async () => {
+    expectSearch().flush(page([]));
+    await settle();
+    setValue('input[name="query"]', 'kovacs');
+    submit();
+    expectSearch().flush(page([user(1)]));
+    await settle();
+
+    fixture.destroy();
+    fixture = TestBed.createComponent(UsersComponent);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+    expect(params(expectSearch())).toEqual({ page: '1', pageSize: '50', query: 'kovacs' });
+    expect(el.querySelector<HTMLInputElement>('input[name="query"]')!.value).toBe('kovacs');
+  });
+
   it('a szűrő gépelésre nem keres, csak a Keresés gombra; az üres mezőt nem küldi', async () => {
     expectSearch().flush(page([]));
     await settle();
