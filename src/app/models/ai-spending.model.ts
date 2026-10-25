@@ -58,6 +58,9 @@ export interface AiSpendingOverviewDto {
   monthTotalUsd: number;
   myOwnMonthUsd: number;
   automationMonthUsd: number;
+  /** A demó-környezetek költése külön sorként - a fenti valódi összegekben nem szerepel (PATRICKS-DEMO-KORNYEZET-TERV.md C7). */
+  demoTodayUsd: number;
+  demoMonthUsd: number;
 }
 
 /** Az OpenRouter fiók TELJES (nem forrásonkénti) fennmaradó kredit-egyenlege. */
@@ -135,6 +138,16 @@ export interface AiSpendingMonthlyReportDto {
   individualTeachers: MonthlyReportPersonDto[];
   otherUsers: MonthlyReportPersonDto[];
   unattributed: MonthlyReportUnattributedDto[];
+  /** A demó-környezetek költése (C8): az összesenben benne van, a bontásban nem. */
+  demoUsd: number;
+  demos: MonthlyReportDemoDto[];
+}
+
+export interface MonthlyReportDemoDto {
+  environmentId: number;
+  title: string;
+  totalUsd: number;
+  requestCount: number;
 }
 
 export interface AiRequestLogDto {

@@ -10,7 +10,7 @@ function report(totalUsd: number, name: string): AiSpendingMonthlyReportDto {
   return {
     month: '', totalUsd, requestCount: 7, attributedUsd: totalUsd, unattributedUsd: 0, institutions: [],
     individualStudents: [{ userId: 1, name, email: 'a@x.hu', totalUsd, requestCount: 7, bySource: { chat: totalUsd } }],
-    individualTeachers: [], otherUsers: [], unattributed: [],
+    individualTeachers: [], otherUsers: [], unattributed: [], demoUsd: 0, demos: [],
   };
 }
 

@@ -56,6 +56,10 @@ export const routes: Routes = [
           import('./pages/admin/admin-tanarok.component').then((m) => m.AdminTanarokComponent),
       },
       {
+        path: 'demok',
+        loadComponent: () => import('./pages/admin/admin-demok.component').then((m) => m.AdminDemokComponent),
+      },
+      {
         path: 'intezmenyek',
         loadComponent: () =>
           import('./pages/admin/admin-intezmenyek.component').then((m) => m.AdminIntezmenyekComponent),

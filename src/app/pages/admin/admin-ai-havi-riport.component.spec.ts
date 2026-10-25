@@ -15,6 +15,8 @@ function makeReport(overrides: Partial<AiSpendingMonthlyReportDto> = {}): AiSpen
     requestCount: 120,
     attributedUsd: 5,
     unattributedUsd: 0.5,
+    demoUsd: 0,
+    demos: [],
     institutions: [
       {
         schoolId: 3, schoolName: 'Bessenyei Gimnázium', totalUsd: 2.5, requestCount: 40,

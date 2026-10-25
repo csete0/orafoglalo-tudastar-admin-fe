@@ -72,6 +72,7 @@ describe('AppComponent', () => {
         ['Jelentkezések', '/jelentkezesek'],
         ['Tanárok', '/tanarok'],
         ['Intézmények', '/intezmenyek'],
+        ['Demók', '/demok'],
         ['Ellenőrzés', '/ellenorzes'],
         ['AI-költés', '/ai-koltes'],
         ['Projektműhely', '/projektmuhely'],

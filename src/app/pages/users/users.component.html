@@ -18,6 +18,8 @@
     <option value="PaymentFailed">Sikertelen fizetés</option>
   </select>
 
+  <label class="demo-toggle"><input type="checkbox" name="includeDemo" formControlName="includeDemo" /> demók is</label>
+
   <button type="submit">Keresés</button>
 </form>
 
@@ -38,7 +40,12 @@
     <tbody>
       @for (item of items(); track item.id) {
         <tr>
-          <td><a [routerLink]="['/users', item.id]">{{ item.email }}</a></td>
+          <td>
+            <a [routerLink]="['/users', item.id]">{{ item.email }}</a>
+            @if (item.isDemo) {
+              <span class="badge badge-warning" data-testid="demo-badge">Demó</span>
+            }
+          </td>
           <td>{{ item.displayName }}</td>
           <td>{{ item.roles.join(', ') || '-' }}</td>
           <td>{{ item.createdAt }}</td>

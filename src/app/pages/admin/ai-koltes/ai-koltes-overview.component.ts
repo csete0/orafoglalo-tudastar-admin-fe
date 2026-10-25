@@ -23,7 +23,7 @@ import { AiKoltesDailyChartComponent } from './ai-koltes-daily-chart.component';
     @if (state.overviewLoading()) {
       <app-local-spinner />
     } @else if (state.overview(); as ov) {
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <div class="card p-4">
           <p class="text-xs text-text-muted font-semibold">Ma összesen</p>
           <p class="text-2xl font-extrabold mt-1">{{ ov.todayTotalUsd | usd }}</p>
@@ -39,6 +39,11 @@ import { AiKoltesDailyChartComponent } from './ai-koltes-daily-chart.component';
         <div class="card p-4">
           <p class="text-xs text-text-muted font-semibold">Automatizmusok (e hónap)</p>
           <p class="text-2xl font-extrabold mt-1">{{ ov.automationMonthUsd | usd }}</p>
+        </div>
+        <div class="card p-4" data-testid="demo-spend">
+          <p class="text-xs text-text-muted font-semibold">Demók (e hónap, külön)</p>
+          <p class="text-2xl font-extrabold mt-1">{{ ov.demoMonthUsd | usd }}</p>
+          <p class="text-xs text-text-muted mt-0.5">ma {{ ov.demoTodayUsd | usd }}</p>
         </div>
         <div class="card p-4">
           <p class="text-xs text-text-muted font-semibold">OpenRouter egyenleg</p>

@@ -35,6 +35,8 @@ const overview: AiSpendingOverviewDto = {
   monthTotalUsd: 16.1,
   myOwnMonthUsd: 1.1,
   automationMonthUsd: 3.7,
+  demoTodayUsd: 0,
+  demoMonthUsd: 0.4,
 };
 const topSpenders: AiSpendingTopSpenderDto[] = [
   { userId: 1, userName: 'Teszt Elek', requestCount: 5, totalUsd: 1.2 },
@@ -162,6 +164,7 @@ describe('AdminAiKoltesComponent – áttekintés és kérésnapló (teljes olda
     expect(text()).toBe(
       HEADER +
         ' Ma összesen $0.330 Ez a hónap $16.10 Saját (admin) költésem $1.10 Automatizmusok (e hónap) $3.70' +
+        ' Demók (e hónap, külön) $0.400 ma $0.000' +
         ' OpenRouter egyenleg $76.50 / $100.00 feltöltve' +
         ' Napi költés, forrás szerint OpenRouter-hívások becsült USD-értéke 30 nap 7 nap ' +
         chart().filter((c) => c.includes(' | ')).map((c) => c.split(' | ')[1]).join(' ') +
@@ -243,7 +246,7 @@ describe('AdminAiKoltesComponent – áttekintés és kérésnapló (teljes olda
     fail(req('/ai-spending/full-exam-usage'));
     const creditsReq = req('/ai-spending/credits');
     await settle();
-    const kpi = () => text(el.querySelectorAll('.card.p-4')[4]);
+    const kpi = () => text(el.querySelectorAll('.card.p-4')[5]);
     expect(kpi()).toBe('OpenRouter egyenleg ...');
     expect(text()).toContain('Legtöbbet költő felhasználók utolsó 30 nap Felhasználó Kérés Költés Nincs adat.');
     expect(el.querySelector('[data-testid="full-exam-usage"]')).toBeNull();

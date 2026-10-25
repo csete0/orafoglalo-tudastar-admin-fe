@@ -20,6 +20,7 @@ const PROTECTED: ReadonlyArray<readonly [url: string, selector: string]> = [
   ['/jelentkezesek', 'app-admin-jelentkezesek'],
   ['/tanarok', 'app-admin-tanarok'],
   ['/intezmenyek', 'app-admin-intezmenyek'],
+  ['/demok', 'app-admin-demok'],
   ['/ellenorzes', 'app-admin-ellenorzes'],
   ['/kuponok', 'app-admin-kuponok'],
   ['/ai-koltes', 'app-admin-ai-koltes'],

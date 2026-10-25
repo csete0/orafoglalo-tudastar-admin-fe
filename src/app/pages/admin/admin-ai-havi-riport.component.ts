@@ -80,7 +80,7 @@ export function fmtUsd(v: number): string {
     @if (loading()) {
       <app-local-spinner />
     } @else if (report(); as r) {
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" data-testid="report-tiles">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5" data-testid="report-tiles">
         <div class="card p-4">
           <p class="text-xs text-text-muted font-semibold">Összesen</p>
           <p class="text-2xl font-extrabold mt-1 tabular-nums">{{ fmtUsd(r.totalUsd) }}</p>
@@ -92,6 +92,13 @@ export function fmtUsd(v: number): string {
         <div class="card p-4">
           <p class="text-xs text-text-muted font-semibold">Nem besorolt</p>
           <p class="text-2xl font-extrabold mt-1 tabular-nums">{{ fmtUsd(r.unattributedUsd) }}</p>
+        </div>
+        <div class="card p-4" data-testid="report-demo">
+          <p class="text-xs text-text-muted font-semibold">Demók</p>
+          <p class="text-2xl font-extrabold mt-1 tabular-nums">{{ fmtUsd(r.demoUsd) }}</p>
+          @for (demo of r.demos; track demo.environmentId) {
+            <p class="text-xs text-text-muted mt-0.5 break-words">{{ demo.title }}: {{ fmtUsd(demo.totalUsd) }}</p>
+          }
         </div>
         <div class="card p-4">
           <p class="text-xs text-text-muted font-semibold">Kérések</p>
