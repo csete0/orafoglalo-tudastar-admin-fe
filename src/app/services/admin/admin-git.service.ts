@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { GitAdminRepo, GitQuota, GitQuotaUpdate } from '../../models/git.model';
+import { GitAdminRepo, GitOrphanRepo, GitQuota, GitQuotaUpdate } from '../../models/git.model';
 
 /** Git-admin: kvóták, tárolók, zár, törlés (BE: AdminGitController). */
 @Injectable({ providedIn: 'root' })
@@ -28,6 +28,11 @@ export class AdminGitService {
 
   unlock(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/repos/${id}/lock`);
+  }
+
+  /** K6: a megjelölt árva tárolók és az utolsó 90 nap törlései. */
+  orphans(): Observable<GitOrphanRepo[]> {
+    return this.http.get<GitOrphanRepo[]>(`${this.base}/orphans`);
   }
 
   remove(id: number): Observable<void> {

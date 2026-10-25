@@ -9,13 +9,14 @@ import { extractErrorMessage } from '../../shared/http-error/extract-error-messa
 import { latestValue } from '../../shared/resource/latest-value';
 import { reportErrors } from '../../shared/resource/report-errors';
 import { GIT_PURPOSE_LABELS, GitAdminRepo, GitQuota } from '../../models/git.model';
+import { GitOrphansComponent } from './git/git-orphans.component';
 
 const ACTION_ERROR = 'A művelet nem sikerült.';
 
 /** Git-adminisztráció (PATRICKS-FEJLESZTOMUHELY-BC-TERV.md 2.2, 4.): kvóták és tárolók (zár visszaélésnél, törlés). */
 @Component({
   selector: 'app-admin-git',
-  imports: [FormsModule, ReactiveFormsModule, DatePipe],
+  imports: [FormsModule, ReactiveFormsModule, DatePipe, GitOrphansComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="max-w-5xl">
@@ -85,6 +86,8 @@ const ACTION_ERROR = 'A művelet nem sikerült.';
           }
         </ul>
       </div>
+
+      <app-git-orphans class="block mt-6" />
     </div>
   `,
 })

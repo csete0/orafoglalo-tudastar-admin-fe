@@ -55,7 +55,8 @@ describe('AdminGitComponent – teljes oldal', () => {
   const reasonInput = () => el.querySelector<HTMLInputElement>('input[maxlength="200"]')!;
   const button = (label: string, root: Element = el) => [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => text(b) === label)!;
   const row = (id: number) => el.querySelector(`[data-testid="git-repo-${id}"]`)!;
-  const rows = () => [...el.querySelectorAll('ul li')].map((li) => text(li));
+  // Csak a tároló-lista sorai (az árva tárolók listája külön szekció).
+  const rows = () => [...el.querySelectorAll('ul li')].filter((li) => !li.closest('[data-testid="git-orphans"]')).map((li) => text(li));
   const errorText = () => el.querySelector('[role="alert"]')?.textContent?.trim() ?? null;
   const fail = (r: TestRequest, body: object | null = null) => r.flush(body, { status: 400, statusText: 'Bad Request' });
   const reposReq = (q: string) => http.expectOne((r) => r.url === `${API}/repos` && r.params.get('q') === q && r.params.get('take') === '100');
@@ -85,7 +86,11 @@ describe('AdminGitComponent – teljes oldal', () => {
     el = fixture.nativeElement;
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // Az árva tárolók listáját (külön szekció, saját spec) itt csak kiszolgáljuk.
+    http.match(`${API}/orphans`).forEach((r) => r.flush([]));
+    http.verify();
+  });
 
   it('betöltés: a kvóta az űrlapba kerül, a tárolók listája üres kereséssel; betöltés közben a gombok tiltva', async () => {
     await settle();
