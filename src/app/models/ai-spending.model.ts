@@ -15,6 +15,7 @@ export const AI_SOURCES = [
   { key: 'office-grading', label: 'Irodai feladat értékelése (gyakorlás)', color: 'var(--series-office-grading)' },
   { key: 'exam-full', label: 'Teljes vizsga értékelése', color: 'var(--series-exam-full)' },
   { key: 'mock-exam', label: 'Próbaérettségi', color: 'var(--series-mock-exam)' },
+  { key: 'official-exam-grading', label: 'Hivatalos érettségi: kód/SQL pontozás (rendszer)', color: 'var(--series-official-exam-grading)' },
   { key: 'code-practice', label: 'Kód/SQL feladat értékelése (gyakorlás)', color: 'var(--series-code-practice)' },
   { key: 'exam-rubric-draft', label: 'Tanári szempontlista-vázlat', color: 'var(--series-exam-rubric-draft)' },
   { key: 'teacher-sql-schema', label: 'Tanár: SQL-fájl generálás', color: 'var(--series-teacher-sql-schema)' },
