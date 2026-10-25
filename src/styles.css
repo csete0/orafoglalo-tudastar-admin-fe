@@ -43,6 +43,8 @@
   --series-oral-exam-grading: #d9825b;
   --series-oral-exam-defense-q: #7f9cf5;
   --series-teacher-oral-draft: #d4a017;
+  --series-teacher-desktop-task: #5fb8c9;
+  --series-technikum-rubric: #b5654a;
 }
 
 /* A tanári felületről áthozott oldalak (§3 migráció) a tanári app Tailwind-témájának

@@ -21,6 +21,14 @@ describe('AI_SOURCES', () => {
     expect(sourceColor('teacher-oral-draft')).toBe('var(--series-teacher-oral-draft)');
   });
 
+  // UI-TT-251: a backend AiRequestSources két forrása nyers kulccsal jelent meg.
+  it('az asztali feladatsor és a technikumi szempontlista forrásnak a backend SourceLabels-szel egyező címkéje és saját színe van', () => {
+    expect(sourceLabel('teacher-desktop-task')).toBe('Tanár: asztali feladatsor témából');
+    expect(sourceColor('teacher-desktop-task')).toBe('var(--series-teacher-desktop-task)');
+    expect(sourceLabel('technikum-rubric')).toBe('Technikum: vizsgarész MI-szempontlista');
+    expect(sourceColor('technikum-rubric')).toBe('var(--series-technikum-rubric)');
+  });
+
   it('minden forrás kulcsa és színe egyedi', () => {
     expect(new Set(AI_SOURCES.map((s) => s.key)).size).toBe(AI_SOURCES.length);
     expect(new Set(AI_SOURCES.map((s) => s.color)).size).toBe(AI_SOURCES.length);
