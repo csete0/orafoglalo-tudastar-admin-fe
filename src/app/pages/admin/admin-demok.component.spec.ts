@@ -2,7 +2,6 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AdminDemokComponent } from './admin-demok.component';
 import { AdminDemoService } from '../../services/admin/admin-demo.service';
-import { AdminDemoStore } from '../../services/admin/admin-demo.store';
 import { ConfirmService } from '../../shared/confirm/confirm.service';
 import { demoCredentials, demoEnv } from './demok/demok.spec-data';
 
@@ -14,7 +13,7 @@ describe('AdminDemokComponent', () => {
   function render() {
     TestBed.configureTestingModule({
       imports: [AdminDemokComponent],
-      providers: [AdminDemoStore, { provide: AdminDemoService, useValue: svc }, { provide: ConfirmService, useValue: { ask } }],
+      providers: [{ provide: AdminDemoService, useValue: svc }, { provide: ConfirmService, useValue: { ask } }],
     });
     const fixture = TestBed.createComponent(AdminDemokComponent);
     fixture.detectChanges();

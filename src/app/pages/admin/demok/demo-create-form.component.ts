@@ -36,7 +36,7 @@ import { AdminDemoStore } from '../../../services/admin/admin-demo.store';
             <option [ngValue]="4">4</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || store.loading()">Létrehozás</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || store.mutating()">Létrehozás</button>
         <button type="button" class="btn btn-ghost" (click)="open.set(false)">Mégse</button>
       </form>
     } @else {

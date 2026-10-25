@@ -77,7 +77,7 @@ const SOON_MS = 48 * 3600 * 1000;
         <div>
           <dt class="text-text-muted text-xs">MI összesen</dt>
           <dd>{{ d.aiSpentTotalUsd | number: '1.2-2' }} $@if (d.aiBudgetTotalUsd !== null) { / {{ d.aiBudgetTotalUsd | number: '1.2-2' }} $}</dd>
-          <dd class="text-xs text-text-muted">szóbeli: {{ d.voiceSessionsDaily !== null ? 'napi ' + d.voiceSessionsDaily : 'összesen ' + d.voiceSessionsTotal }}</dd>
+          <dd class="text-xs text-text-muted">szóbeli: {{ voiceLimit() }}</dd>
         </div>
       </dl>
 
@@ -96,11 +96,11 @@ const SOON_MS = 48 * 3600 * 1000;
 
       <div class="flex flex-wrap gap-2 mt-4 print:hidden">
         @if (d.kind === 'school') {
-          <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy()" (click)="extendDays(7)">+7 nap</button>
-          <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy()" (click)="extendDays(14)">+14 nap</button>
+          <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy() || inProgress()" (click)="extendDays(7)">+7 nap</button>
+          <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy() || inProgress()" (click)="extendDays(14)">+14 nap</button>
           <span class="inline-flex gap-1 items-center">
             <input type="date" class="input !w-auto !text-xs" [(ngModel)]="extendUntil" [attr.aria-label]="'Új lejárat: ' + d.title" />
-            <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy() || !extendUntil()" (click)="extendToDate()">Lejárat</button>
+            <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy() || inProgress() || !extendUntil()" (click)="extendToDate()">Lejárat</button>
           </span>
         }
         <button type="button" class="btn btn-ghost !text-xs" [disabled]="busy() || inProgress()" (click)="reset()" data-testid="demo-reset">
@@ -126,7 +126,12 @@ export class DemoCardComponent {
   readonly statusLabel = computed(() => STATUS_LABEL[this.demo().status]);
   readonly statusBadge = computed(() => STATUS_BADGE[this.demo().status]);
   readonly inProgress = computed(() => this.demo().status === 'resetting' || this.demo().status === 'deleting');
-  readonly busy = computed(() => this.store.busyId() !== null || this.store.loading());
+  readonly busy = computed(() => this.store.mutating());
+  readonly voiceLimit = computed(() => {
+    const { voiceSessionsDaily: daily, voiceSessionsTotal: total } = this.demo();
+    if (daily !== null) return `napi ${daily}`;
+    return total !== null ? `összesen ${total}` : 'nincs korlát';
+  });
   readonly expiresSoon = computed(() => {
     const expires = this.demo().expiresAt;
     return expires !== null && asUtc(expires).getTime() - Date.now() < SOON_MS;
@@ -146,6 +151,7 @@ export class DemoCardComponent {
     const ok = await this.confirm.ask({
       message: `Visszaállítod a(z) „${this.demo().title}” demót? Minden, a bemutató óta végzett munka elvész, a jelszavak megmaradnak; ` +
         'a bejelentkezett felhasználóknak újra be kell lépniük.',
+      danger: true,
       confirmLabel: 'Visszaállítás',
     });
     if (ok) this.store.reset(this.demo().id);

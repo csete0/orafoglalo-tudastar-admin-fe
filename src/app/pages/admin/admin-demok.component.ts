@@ -16,6 +16,7 @@ export const DEFAULT_OWNER_EMAIL_BASE = 'csete6@gmail.com';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-admin-demok',
+  providers: [AdminDemoStore],
   imports: [ReactiveFormsModule, LocalSpinnerComponent, DemoCardComponent, DemoCreateFormComponent, DemoCredentialsComponent],
   template: `
     <div class="max-w-5xl">
@@ -35,13 +36,13 @@ export const DEFAULT_OWNER_EMAIL_BASE = 'csete6@gmail.com';
         <h2 class="text-lg font-semibold mb-3">Saját demó</h2>
         @if (store.ownerDemo(); as owner) {
           <app-demo-card [demo]="owner" />
-        } @else {
+        } @else if (store.loaded()) {
           <form class="card p-4 flex flex-wrap gap-3 items-end" [formGroup]="ownerForm" (ngSubmit)="createOwner()" data-testid="owner-form">
             <div class="flex-1 min-w-56">
               <label class="text-xs text-text-muted block mb-1" for="owner-email">Postafiók (a demó-fiókok plusz-címei ide futnak)</label>
               <input id="owner-email" type="email" class="input" formControlName="emailBase" />
             </div>
-            <button type="submit" class="btn btn-primary" [disabled]="ownerForm.invalid || store.loading()">Saját demó létrehozása</button>
+            <button type="submit" class="btn btn-primary" [disabled]="ownerForm.invalid || store.mutating()">Saját demó létrehozása</button>
           </form>
         }
       </section>
@@ -51,14 +52,16 @@ export const DEFAULT_OWNER_EMAIL_BASE = 'csete6@gmail.com';
           <h2 class="text-lg font-semibold">Iskolai demók</h2>
           <app-demo-create-form />
         </div>
-        @if (store.loading() && store.demos().length === 0) {
+        @if (!store.loaded()) {
           <app-local-spinner />
         }
         <div class="space-y-3">
           @for (demo of store.schoolDemos(); track demo.id) {
             <app-demo-card [demo]="demo" />
           } @empty {
-            <p class="text-sm text-text-muted">Még nincs iskolai demó.</p>
+            @if (store.loaded()) {
+              <p class="text-sm text-text-muted">Még nincs iskolai demó.</p>
+            }
           }
         </div>
       </section>
@@ -76,6 +79,6 @@ export class AdminDemokComponent {
   }
 
   createOwner(): void {
-    this.store.createOwner({ emailBase: this.ownerForm.getRawValue().emailBase.trim() }, () => undefined);
+    this.store.createOwner({ emailBase: this.ownerForm.getRawValue().emailBase.trim() });
   }
 }
