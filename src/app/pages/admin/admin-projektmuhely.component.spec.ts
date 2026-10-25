@@ -82,6 +82,20 @@ describe('AdminProjektmuhelyComponent', () => {
     expect([0.00012, 0.05, 0, 3.456].map((v) => usd.transform(v, 'fine'))).toEqual(['$0.0001', '$0.050', '$0.00', '$3.46']);
   });
 
+  it('tölcsér az áttekintésből: a választó a kattintott (nem az első) projektet mutatja (UI-TT-254)', async () => {
+    const { c, el, fixture, api } = await setup();
+    const second = { ...overview.projects[0], slug: 'osztalykassza', title: 'Osztálykassza' };
+    api.getOverview.mockReturnValue(of({ ...overview, projects: [overview.projects[0], second] }));
+    c.days.set(7);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    c.openFunnel('osztalykassza');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect((el.querySelector('#pm-funnel-project') as HTMLSelectElement).value).toBe('osztalykassza');
+  });
+
   it('költség: időszakváltáskor újratölt', async () => {
     const { c, api, fixture } = await setup();
     c.setDays(7);
