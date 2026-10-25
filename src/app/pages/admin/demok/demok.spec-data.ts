@@ -18,6 +18,6 @@ export const demoCredentials: DemoCredentials = {
     { key: 'tanar', role: 'teacher', name: 'Varga Eszter', email: 'tanar.d1@demo.patricks.invalid', password: 'Alma-1234-korte' },
     { key: 'diak1', role: 'student', name: 'Vadász Zsófia', email: 'diak1.d1@demo.patricks.invalid', password: 'Eper-5678-szilva' },
   ],
-  studentAppUrl: 'https://www.patricks.hu/bejelentkezes',
-  teacherAppUrl: 'https://tanar.patricks.hu',
+  studentAppUrl: 'https://www.patricks.hu/login',
+  teacherAppUrl: 'https://teachers.patricks.hu',
 };
