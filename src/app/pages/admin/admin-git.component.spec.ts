@@ -12,7 +12,7 @@ describe('AdminGitComponent', () => {
   function setup() {
     const api = {
       getQuota: vi.fn(() => of(quota)), updateQuota: vi.fn((q) => of({ ...quota, ...q })), searchRepos: vi.fn(() => of([repo])),
-      lock: vi.fn(() => of(undefined)), unlock: vi.fn(() => of(undefined)), remove: vi.fn(() => of(undefined)),
+      lock: vi.fn(() => of(undefined)), unlock: vi.fn(() => of(undefined)), remove: vi.fn(() => of(undefined)), orphans: vi.fn(() => of([])),
     };
     const confirm = { ask: vi.fn().mockResolvedValue(true) };
     TestBed.configureTestingModule({

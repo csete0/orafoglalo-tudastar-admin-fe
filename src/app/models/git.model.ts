@@ -33,4 +33,15 @@ export interface GitAdminRepo {
   createdAt: string;
 }
 
+/** Árva Forgejo-tároló (K6): a napi job jelölése (`deletesAfter`-kor törlődik, ha addig sem kerül gazdához) vagy már törölt. */
+export interface GitOrphanRepo {
+  id: number;
+  name: string;
+  status: 'marked' | 'deleted';
+  firstSeenAt: string;
+  lastSeenAt: string;
+  deletedAt: string | null;
+  deletesAfter: string;
+}
+
 export const GIT_PURPOSE_LABELS: Record<GitRepoPurpose, string> = { project: 'projekt', exercise: 'gyakorló', gate: 'kapu', team: 'csapat' };
