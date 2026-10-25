@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injectable, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,6 +7,16 @@ import { PagerComponent } from '../../shared/pager/pager.component';
 import { latestValue } from '../../shared/resource/latest-value';
 
 const PAGE_SIZE = 50;
+
+/**
+ * A kereső állapota a lista-oldal élettartamán túl (UI-TT-253): a felhasználó adatlapjáról a „Vissza a kereséshez”
+ * ugyanarra a keresésre és oldalra hoz vissza (a két route között a lista-komponens újra létrejön).
+ */
+@Injectable({ providedIn: 'root' })
+export class UserSearchState {
+  readonly filter = signal({ query: '', role: '', subscriptionStatus: '' });
+  readonly page = signal(1);
+}
 
 @Component({
   selector: 'app-users',
@@ -17,12 +27,13 @@ const PAGE_SIZE = 50;
 })
 export class UsersComponent {
   private readonly userService = inject(UserService);
+  private readonly state = inject(UserSearchState);
 
   readonly pageSize = PAGE_SIZE;
   /** A szűrő-mezők; csak a Keresés gombbal lépnek érvénybe (az üres mezőt a service nem küldi). */
-  readonly form = inject(NonNullableFormBuilder).group({ query: '', role: '', subscriptionStatus: '' });
-  private readonly filter = signal(this.form.getRawValue());
-  readonly page = signal(1);
+  readonly form = inject(NonNullableFormBuilder).group(this.state.filter());
+  private readonly filter = this.state.filter;
+  readonly page = this.state.page;
 
   private readonly result = rxResource({
     params: () => ({ ...this.filter(), page: this.page(), pageSize: PAGE_SIZE }),
