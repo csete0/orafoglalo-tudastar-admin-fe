@@ -15,8 +15,9 @@ import { PercentOfPipe } from '../../../shared/format/percent-of.pipe';
   template: `
     <div class="flex items-center gap-3 mb-4">
       <label class="text-sm font-semibold" for="pm-funnel-project">Projekt</label>
-      <select id="pm-funnel-project" class="input max-w-xs" [value]="slug()" #funnelSelect (change)="projectChange.emit(funnelSelect.value)">
-        @for (p of projects(); track p.slug) { <option [value]="p.slug">{{ p.title }}</option> }
+      <!-- Az opción a [selected]: a select [value]-ja az első rajzoláskor még opciók nélkül íródna, és az első projekt maradna kijelölve. -->
+      <select id="pm-funnel-project" class="input max-w-xs" #funnelSelect (change)="projectChange.emit(funnelSelect.value)">
+        @for (p of projects(); track p.slug) { <option [value]="p.slug" [selected]="p.slug === slug()">{{ p.title }}</option> }
       </select>
     </div>
     @if (funnel(); as f) {
