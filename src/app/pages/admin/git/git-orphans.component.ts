@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { DatePipe } from '@angular/common';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AdminGitService } from '../../../services/admin/admin-git.service';
+import { asUtc } from '../../../models/mock-exam.model';
 
 /**
  * Árva Forgejo-tárolók (PATRICKS-DEMO-KORNYEZET-TERV.md K6): a napi job első észleléskor csak megjelöli az alkalmazás névmintájú, gazda
@@ -16,7 +17,7 @@ import { AdminGitService } from '../../../services/admin/admin-git.service';
       <h2 id="git-orphans-title" class="font-bold">Árva tárolók</h2>
       <p class="text-sm text-text-muted">
         Gazda nélküli tárolók a Git-szerveren. A napi takarítás első észleléskor csak megjelöli őket, és a türelmi idő után törli
-        (egy futásban legfeljebb 20-at); minden törlés az audit-naplóba kerül.
+        (futásonként korlátozott számban); minden törlés az audit-naplóba kerül.
       </p>
       @if (orphans.error()) {
         <p class="text-danger text-sm" role="alert">Az árva tárolók listája nem tölthető be.</p>
@@ -30,7 +31,7 @@ import { AdminGitService } from '../../../services/admin/admin-git.service';
               <span class="font-mono break-all">{{ o.name }}</span>
               @if (o.status === 'marked') {
                 <span class="badge badge-warning">jelölve</span>
-                <span class="text-text-muted">észlelve {{ o.firstSeenAt | date: 'yyyy.MM.dd.' }} · törlés legkorábban {{ o.deletesAfter | date: 'yyyy.MM.dd.' }}</span>
+                <span class="text-text-muted">észlelve {{ o.firstSeen | date: 'yyyy.MM.dd.' }} · törlés legkorábban {{ o.deletesAfter | date: 'yyyy.MM.dd.' }}</span>
               } @else {
                 <span class="badge badge-neutral">törölve</span>
                 <span class="text-text-muted">{{ o.deletedAt | date: 'yyyy.MM.dd. HH:mm' }}</span>
@@ -48,7 +49,13 @@ export class GitOrphansComponent {
   private readonly api = inject(AdminGitService);
 
   readonly orphans = rxResource({ stream: () => this.api.orphans() });
-  readonly rows = computed(() => (this.orphans.hasValue() ? this.orphans.value() : []));
+  /** Az Admin API időbélyegei UTC-k „Z” nélkül - a megjelenítéshez helyi időre. */
+  readonly rows = computed(() =>
+    (this.orphans.hasValue() ? this.orphans.value() : []).map((o) => ({
+      id: o.id, name: o.name, status: o.status, firstSeen: asUtc(o.firstSeenAt), deletesAfter: asUtc(o.deletesAfter),
+      deletedAt: o.deletedAt ? asUtc(o.deletedAt) : null,
+    })),
+  );
   readonly marked = computed(() => this.rows().filter((o) => o.status === 'marked'));
   readonly deleted = computed(() => this.rows().filter((o) => o.status === 'deleted'));
 }
