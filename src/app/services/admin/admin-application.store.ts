@@ -28,7 +28,7 @@ export class AdminApplicationStore {
   // guard. Ehelyett egy generációs számlálóval mindkét (átfedő) kérés elindulhat, de csak a
   // LEGUTÓBB indított hívás válasza (akármelyik érkezzen is meg utoljára a hálózaton)
   // érvényesül - ugyanaz a "legfrissebb szándék nyer" minta, mint a UI-TS-108/109 stale-
-  // response race fixek a testvér orafoglalo-tudastar-fe repóban.
+  // response race fixek a testvér patricks-web repóban.
   private _loadGeneration = 0;
 
   readonly applications = this._applications.asReadonly();
