@@ -1,4 +1,4 @@
-/** Növekedés-mérés (BE: DigitalCulture.Domain/Entities/Analytics/GrowthDtos.cs). Tesztfiókok nélkül. */
+/** Növekedés-mérés (BE: Patricks.Domain/Entities/Analytics/GrowthDtos.cs). Tesztfiókok nélkül. */
 
 export interface GrowthOverview {
   registrations30: number;
@@ -29,7 +29,7 @@ export interface GrowthCancellations {
   recent: { createdAt: string; reason: string; comment: string }[];
 }
 
-/** Tulajdonosi irányítópult (BE: DigitalCulture.Domain/Entities/Analytics/BusinessDtos.cs). Összegek forintban. */
+/** Tulajdonosi irányítópult (BE: Patricks.Domain/Entities/Analytics/BusinessDtos.cs). Összegek forintban. */
 export interface RevenueMonth {
   month: string;
   subscription: number;

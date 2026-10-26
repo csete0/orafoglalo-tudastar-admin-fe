@@ -1,4 +1,4 @@
-/** Szempontlisták (BE: DigitalCulture.Domain/Entities/Rubrics/TaskRubric.cs). */
+/** Szempontlisták (BE: Patricks.Domain/Entities/Rubrics/TaskRubric.cs). */
 
 export type RubricStatus = 'draft' | 'approved' | 'superseded' | 'rejected';
 export type RubricItemKind = 'criterion' | 'statement' | 'threshold';
