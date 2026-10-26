@@ -1,4 +1,4 @@
-/** Érettségi-eredmények (BE: DigitalCulture.Domain/Entities/ExamOutcomes/ExamOutcomeAdminDtos.cs). */
+/** Érettségi-eredmények (BE: Patricks.Domain/Entities/ExamOutcomes/ExamOutcomeAdminDtos.cs). */
 
 export interface ExamOutcomeSegment {
   label: string;

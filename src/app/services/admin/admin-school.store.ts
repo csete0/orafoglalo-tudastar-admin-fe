@@ -39,7 +39,7 @@ export class AdminSchoolStore {
    * Siker esetén a lista teljes újratöltéssel frissül — egyszerűbb, mint
    * optimista update, mert egy egyesítés két sort is módosít egyszerre
    * (a forrás eltűnik, a cél számai nőnek). Sikertelen egyesítésnél (pl.
-   * a backend OrafoglaloException-t dob, mert a forrás időközben törölve
+   * a backend PatricksException-t dob, mert a forrás időközben törölve
    * lett) a korábbi, immár félrevezető sikeres eredményt is töröljük, hogy
    * ne maradjon egy ellentmondó "Egyesítés sikeres." panel a képernyőn.
    */

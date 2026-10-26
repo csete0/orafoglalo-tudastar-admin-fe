@@ -17,7 +17,7 @@ export interface CouponAdminDto {
   note: string | null;
 }
 
-/** A `CouponCreateRequest` tükre - a validáció a szerveren fut (OrafoglaloException → errorMessage). */
+/** A `CouponCreateRequest` tükre - a validáció a szerveren fut (PatricksException → errorMessage). */
 export interface CouponCreateRequest {
   code: string;
   percentOff?: number | null;

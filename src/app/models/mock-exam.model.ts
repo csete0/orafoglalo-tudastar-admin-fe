@@ -1,4 +1,4 @@
-// Próbaérettségi - admin (PATRICKS-PROBAERETTSEGI-TERV.md F); lásd DigitalCulture.Domain.Entities.MockExams.MockExamDtos.
+// Próbaérettségi - admin (PATRICKS-PROBAERETTSEGI-TERV.md F); lásd Patricks.Domain.Entities.MockExams.MockExamDtos.
 
 /** Az időpontok UTC-ben jönnek; az űrlap budapesti helyi idővel küld (a szerver alakítja UTC-re). */
 export interface AdminMockExam {
