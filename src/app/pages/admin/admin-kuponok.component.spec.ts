@@ -170,7 +170,7 @@ describe('AdminKuponokComponent - B3: kuponok admin nézet', () => {
     expect(component.canSubmit()).toBe(false);
   });
 
-  it('a szerver validációs hibáját (OrafoglaloException errorMessage) az űrlap alatt mutatja', async () => {
+  it('a szerver validációs hibáját (PatricksException errorMessage) az űrlap alatt mutatja', async () => {
     const fixture = await configure();
     const component = createForm(fixture);
     svcMock.create.mockReturnValue(throwError(() => ({ error: { errorMessage: 'Ilyen kód már létezik.' } })));
